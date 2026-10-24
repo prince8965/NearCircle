@@ -6,6 +6,7 @@ import { DemoNote } from '../components/ui/DemoNote'
 import { FormField } from '../components/ui/FormField'
 import { useAuth } from '../hooks/AuthContext'
 import { useToast } from '../hooks/ToastContext'
+import { isSupabaseConfigured } from '../services'
 
 interface Props {
   mode: 'login' | 'signup'
@@ -58,7 +59,7 @@ export default function AuthPage({ mode }: Props) {
     try {
       if (isSignup) await signUp(name.trim(), email.trim(), password)
       else await signIn(email.trim(), password)
-      notify(isSignup ? 'Welcome to NearCircle! (demo session)' : 'Welcome back! (demo session)')
+      notify('Login successful!', 'success')
       navigate(from, { replace: true })
     } catch (e) {
       setErrors({ form: e instanceof Error ? e.message : 'Something went wrong. Please try again.' })
@@ -88,10 +89,11 @@ export default function AuthPage({ mode }: Props) {
           </p>
         </div>
 
-        <DemoNote>
-          Demo sign-in only. No real account is created, and your password is never stored or checked. The auth layer is
-          designed to be swapped for Supabase Auth.
-        </DemoNote>
+        {!isSupabaseConfigured() && (
+          <DemoNote>
+            Demo sign-in only. No real account is created, and your password is never stored or checked.
+          </DemoNote>
+        )}
 
         <form onSubmit={submit} noValidate className="space-y-4">
           {isSignup && (

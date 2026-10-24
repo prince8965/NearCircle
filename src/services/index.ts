@@ -36,4 +36,5 @@ export {
   getCurrentUserId,
 } from './communityPostService'
 export type { CommunityFeedOptions } from './communityPostService'
+export { supabase, isSupabaseConfigured } from '../lib/supabase'
 

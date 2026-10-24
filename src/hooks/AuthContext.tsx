@@ -1,6 +1,7 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { User } from '../types'
-import { authAdapter } from '../services'
+import { authAdapter, isSupabaseConfigured, supabase } from '../services'
+import { removeStore, writeStore } from '../utils/storage'
 
 interface AuthValue {
   user: User | null
@@ -14,12 +15,58 @@ const AuthContext = createContext<AuthValue | null>(null)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(() => authAdapter.getSession())
 
+  useEffect(() => {
+    if (!isSupabaseConfigured()) return
+
+    // Sync active session if available from Supabase client
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        const u: User = {
+          id: session.user.id,
+          name:
+            (session.user.user_metadata?.name as string) ||
+            session.user.email?.split('@')[0] ||
+            'User',
+          email: session.user.email || '',
+        }
+        setUser(u)
+        writeStore('session', u)
+      }
+    })
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        const u: User = {
+          id: session.user.id,
+          name:
+            (session.user.user_metadata?.name as string) ||
+            session.user.email?.split('@')[0] ||
+            'User',
+          email: session.user.email || '',
+        }
+        setUser(u)
+        writeStore('session', u)
+      } else {
+        setUser(null)
+        removeStore('session')
+      }
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [])
+
   const signIn = useCallback(async (email: string, password: string) => {
     setUser(await authAdapter.signIn(email, password))
   }, [])
+
   const signUp = useCallback(async (name: string, email: string, password: string) => {
     setUser(await authAdapter.signUp(name, email, password))
   }, [])
+
   const signOut = useCallback(async () => {
     await authAdapter.signOut()
     setUser(null)
