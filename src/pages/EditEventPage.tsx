@@ -11,6 +11,8 @@ import { useToast } from '../hooks/ToastContext'
 import { useAsync } from '../hooks/useAsync'
 import { getEventById, updateEvent } from '../services'
 
+import { isSupabaseConfigured } from '../lib/supabase'
+
 export default function EditEventPage() {
   const { id = '' } = useParams()
   const { notify } = useToast()
@@ -36,7 +38,11 @@ export default function EditEventPage() {
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
       <PageHeader title="Edit event" subtitle={event.title} />
       <div className="mb-6">
-        <DemoNote>Demo mode: changes are saved only in this browser (localStorage).</DemoNote>
+        <DemoNote>
+          {isSupabaseConfigured()
+            ? 'Connected to database: updates are saved and verified against database authorization policies.'
+            : 'Demo mode: changes are saved in this browser.'}
+        </DemoNote>
       </div>
       <CreateEventForm
         isEditing

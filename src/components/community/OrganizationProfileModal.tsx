@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Check, CheckCircle2, Globe, Mail, MapPin, MessageSquare, Plus, Users, X } from 'lucide-react'
+import { CalendarCheck, Check, CheckCircle2, Globe, History, Mail, MapPin, MessageSquare, Pencil, Plus, Users, X } from 'lucide-react'
 import { CategoryChip } from '../ui/CategoryChip'
 import { CategoryIcon } from '../ui/CategoryIcon'
 import { EmptyState } from '../ui/EmptyState'
@@ -7,7 +7,9 @@ import { EventCard } from '../events/EventCard'
 import { getLocality } from '../../data/localities'
 import { useToast } from '../../hooks/ToastContext'
 import {
+  authAdapter,
   followOrganization,
+  getEvents,
   searchEvents,
   unfollowOrganization,
   defaultFilters,
@@ -21,6 +23,7 @@ interface Props {
   onClose: () => void
   onFollowToggled?: () => void
   onPostUpdated?: () => void
+  onEdit?: (org: Organization) => void
 }
 
 export function OrganizationProfileModal({
@@ -29,11 +32,18 @@ export function OrganizationProfileModal({
   onClose,
   onFollowToggled,
   onPostUpdated,
+  onEdit,
 }: Props) {
   const { notify } = useToast()
-  const [activeTab, setActiveTab] = useState<'posts' | 'events'>('posts')
+  const session = authAdapter.getSession()
+  const isOwner = Boolean(
+    session && organization && (session.id === organization.ownerId || session.role === 'admin'),
+  )
+
+  const [activeTab, setActiveTab] = useState<'posts' | 'events' | 'history'>('posts')
   const [busy, setBusy] = useState(false)
   const [events, setEvents] = useState<EventWithMeta[]>([])
+  const [pastEvents, setPastEvents] = useState<EventWithMeta[]>([])
   const [eventsLoading, setEventsLoading] = useState(false)
 
   // Close on Escape key
@@ -51,21 +61,43 @@ export function OrganizationProfileModal({
     }
   }, [organization, onClose])
 
-  // Load upcoming events
+  // Load upcoming and past events for public event history
   useEffect(() => {
     if (!organization) return
     let active = true
     setEventsLoading(true)
-    searchEvents({ ...defaultFilters, sort: 'soonest' })
-      .then((res) => {
+
+    Promise.all([
+      searchEvents({ ...defaultFilters, sort: 'soonest' }),
+      getEvents(),
+    ])
+      .then(([upcoming, allStored]) => {
         if (!active) return
-        const matching = res.filter(
-          (e) =>
-            (organization.upcomingEventIds && organization.upcomingEventIds.includes(e.id)) ||
-            e.organizerName.toLowerCase().includes(organization.name.toLowerCase()) ||
-            (e.communityId && e.communityId.toLowerCase().includes(organization.slug)),
-        )
-        setEvents(matching)
+        const isOrgEvent = (e: { organizationId?: string; organizerName: string; communityId?: string; id: string }) =>
+          (organization.upcomingEventIds && organization.upcomingEventIds.includes(e.id)) ||
+          e.organizationId === organization.id ||
+          e.organizerName.toLowerCase().includes(organization.name.toLowerCase()) ||
+          (e.communityId && e.communityId.toLowerCase().includes(organization.slug))
+
+        const matchingUpcoming = upcoming.filter(isOrgEvent)
+        setEvents(matchingUpcoming)
+
+        const now = Date.now()
+        // Past / completed public events
+        const matchingPast = allStored
+          .filter(
+            (e) =>
+              isOrgEvent(e) &&
+              (e.status === 'completed' || (e.status === 'published' && new Date(e.endsAt).getTime() < now)),
+          )
+          .map((e) => ({
+            ...e,
+            seatsLeft: 0,
+            rsvpCount: e.baseRsvpCount,
+            isRsvped: false,
+            recommendationScore: 0,
+          })) as EventWithMeta[]
+        setPastEvents(matchingPast)
       })
       .finally(() => {
         if (active) setEventsLoading(false)
@@ -186,6 +218,16 @@ export function OrganizationProfileModal({
             </div>
 
             <div className="flex items-center gap-2 self-start sm:self-end">
+              {isOwner && onEdit && (
+                <button
+                  type="button"
+                  onClick={() => onEdit(organization)}
+                  className="btn-secondary text-sm px-3.5 py-2 rounded-xl flex items-center gap-1.5 font-semibold"
+                >
+                  <Pencil className="h-4 w-4 text-brand" />
+                  <span>Edit Profile</span>
+                </button>
+              )}
               <button
                 type="button"
                 onClick={handleToggleFollow}
@@ -238,9 +280,9 @@ export function OrganizationProfileModal({
           </div>
         </div>
 
-        {/* Sub tabs: Posts vs Events */}
+        {/* Sub tabs: Posts vs Events vs Event History */}
         <div className="border-b border-[#1E293B] bg-[#0B0F19] px-6 pt-3">
-          <div className="flex gap-4">
+          <div className="flex flex-wrap gap-4">
             <button
               type="button"
               onClick={() => setActiveTab('posts')}
@@ -264,6 +306,18 @@ export function OrganizationProfileModal({
             >
               <Users className="h-4 w-4" />
               Upcoming Events ({events.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('history')}
+              className={`flex items-center gap-2 pb-3 text-sm font-semibold border-b-2 transition ${
+                activeTab === 'history'
+                  ? 'border-brand text-brand'
+                  : 'border-transparent text-ink-muted hover:text-white'
+              }`}
+            >
+              <History className="h-4 w-4" />
+              Public Event History ({pastEvents.length})
             </button>
           </div>
         </div>
@@ -289,20 +343,39 @@ export function OrganizationProfileModal({
                 ))}
               </div>
             )
-          ) : eventsLoading ? (
-            <p className="text-sm text-ink-muted">Loading upcoming events…</p>
-          ) : events.length === 0 ? (
-            <EmptyState
-              icon={Users}
-              title="No upcoming events"
-              description={`${organization.name} doesn't have any scheduled events right now. Follow them to be notified!`}
-            />
+          ) : activeTab === 'events' ? (
+            eventsLoading ? (
+              <p className="text-sm text-ink-muted">Loading scheduled events…</p>
+            ) : events.length === 0 ? (
+              <EmptyState
+                icon={Users}
+                title="No upcoming events"
+                description={`${organization.name} doesn't have any scheduled events right now. Follow them to be notified!`}
+              />
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2">
+                {events.map((evt) => (
+                  <EventCard key={evt.id} event={evt} />
+                ))}
+              </div>
+            )
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2">
-              {events.map((evt) => (
-                <EventCard key={evt.id} event={evt} />
-              ))}
-            </div>
+            /* Event History Tab */
+            eventsLoading ? (
+              <p className="text-sm text-ink-muted">Loading event history…</p>
+            ) : pastEvents.length === 0 ? (
+              <EmptyState
+                icon={CalendarCheck}
+                title="No past events yet"
+                description={`${organization.name} hasn't concluded any public events on NearCircle yet.`}
+              />
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2">
+                {pastEvents.map((evt) => (
+                  <EventCard key={evt.id} event={evt} />
+                ))}
+              </div>
+            )
           )}
         </div>
       </div>

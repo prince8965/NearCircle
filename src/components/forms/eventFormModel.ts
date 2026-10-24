@@ -20,6 +20,17 @@ export interface EventFormValues {
   price: string
   capacity: string
   registrationUrl: string
+
+  // Hackathon & advanced configuration
+  mode: 'in-person' | 'online' | 'hybrid'
+  eligibility: string
+  minTeamSize: string
+  maxTeamSize: string
+  registrationDeadline: string
+  submissionDeadline: string
+  rules: string
+  prizesSummary: string
+  tracks: string
 }
 
 export type EventFormErrors = Partial<Record<keyof EventFormValues, string>>
@@ -44,6 +55,16 @@ export function emptyFormValues(localityId: string): EventFormValues {
     price: '',
     capacity: '50',
     registrationUrl: '',
+
+    mode: 'in-person',
+    eligibility: 'Open to all students and enthusiasts',
+    minTeamSize: '1',
+    maxTeamSize: '4',
+    registrationDeadline: '',
+    submissionDeadline: '',
+    rules: '',
+    prizesSummary: '',
+    tracks: '',
   }
 }
 
@@ -66,6 +87,16 @@ export function eventToFormValues(e: Event): EventFormValues {
     price: e.price > 0 ? String(e.price) : '',
     capacity: String(e.capacity),
     registrationUrl: e.registrationUrl ?? '',
+
+    mode: e.mode ?? 'in-person',
+    eligibility: e.eligibility ?? '',
+    minTeamSize: e.minTeamSize ? String(e.minTeamSize) : '1',
+    maxTeamSize: e.maxTeamSize ? String(e.maxTeamSize) : '4',
+    registrationDeadline: e.registrationDeadline ? toDateInput(e.registrationDeadline) : '',
+    submissionDeadline: e.submissionDeadline ? toDateInput(e.submissionDeadline) : '',
+    rules: e.rules ?? '',
+    prizesSummary: e.prizesSummary ?? '',
+    tracks: e.tracks ? e.tracks.join(', ') : '',
   }
 }
 
@@ -93,21 +124,59 @@ export function validateEventForm(v: EventFormValues, status: EventStatus, isEdi
   if (!v.startTime) errors.startTime = 'Choose a start time.'
   if (!v.endDate) errors.endDate = 'Choose an end date.'
   if (!v.endTime) errors.endTime = 'Choose an end time.'
+
+  let startTs = 0
+  let endTs = 0
   if (v.startDate && v.startTime && v.endDate && v.endTime) {
-    const start = new Date(`${v.startDate}T${v.startTime}`).getTime()
-    const end = new Date(`${v.endDate}T${v.endTime}`).getTime()
-    if (end <= start) errors.endTime = 'The event must end after it starts.'
-    if (!isEditing && start < Date.now()) errors.startDate = 'Start time must be in the future.'
+    startTs = new Date(`${v.startDate}T${v.startTime}`).getTime()
+    endTs = new Date(`${v.endDate}T${v.endTime}`).getTime()
+    if (endTs <= startTs) errors.endTime = 'The event must end after it starts.'
+    if (!isEditing && startTs < Date.now()) errors.startDate = 'Start time must be in the future.'
   }
-  if (!v.venueName.trim()) errors.venueName = 'Add the venue name.'
-  if (!v.address.trim()) errors.address = 'Add the venue address.'
+
+  if (v.mode !== 'online') {
+    if (!v.venueName.trim()) errors.venueName = 'Add the venue name.'
+    if (!v.address.trim()) errors.address = 'Add the venue address.'
+  }
+
   if (!v.isFree) {
     const p = Number(v.price)
     if (!v.price || Number.isNaN(p) || p <= 0) errors.price = 'Enter a ticket price above 0, or mark the event as free.'
   }
+
   const cap = Number(v.capacity)
   if (!v.capacity || !Number.isInteger(cap) || cap < 1) errors.capacity = 'Capacity must be a whole number of at least 1.'
   else if (cap > 100000) errors.capacity = 'Capacity looks too large. Please check it.'
+
+  // Team size validation
+  const minTeam = Number(v.minTeamSize)
+  const maxTeam = Number(v.maxTeamSize)
+  if (v.minTeamSize && (!Number.isInteger(minTeam) || minTeam < 1)) {
+    errors.minTeamSize = 'Minimum team size must be at least 1.'
+  }
+  if (v.maxTeamSize && (!Number.isInteger(maxTeam) || maxTeam < 1)) {
+    errors.maxTeamSize = 'Maximum team size must be at least 1.'
+  } else if (minTeam && maxTeam && maxTeam < minTeam) {
+    errors.maxTeamSize = 'Maximum team size must be greater than or equal to minimum team size.'
+  }
+
+  // Deadlines validation
+  if (v.registrationDeadline && endTs) {
+    const regTs = new Date(`${v.registrationDeadline}T23:59:59`).getTime()
+    if (regTs > endTs) {
+      errors.registrationDeadline = 'Registration deadline cannot be after the event end date.'
+    }
+  }
+
+  if (v.submissionDeadline && startTs && endTs) {
+    const subTs = new Date(`${v.submissionDeadline}T23:59:59`).getTime()
+    if (subTs < startTs) {
+      errors.submissionDeadline = 'Submission deadline cannot be before the event starts.'
+    } else if (subTs > endTs + 86_400_000) {
+      errors.submissionDeadline = 'Submission deadline cannot exceed the event conclusion.'
+    }
+  }
+
   return errors
 }
 
@@ -118,6 +187,12 @@ export function formValuesToInput(v: EventFormValues, status: EventStatus): Even
     v.startDate && v.startTime ? fromDateTimeInputs(v.startDate, v.startTime) : new Date(now.getTime() + 7 * 86_400_000).toISOString()
   const endsAt =
     v.endDate && v.endTime ? fromDateTimeInputs(v.endDate, v.endTime) : new Date(new Date(startsAt).getTime() + 2 * 3600_000).toISOString()
+
+  const tracks = v.tracks
+    .split(',')
+    .map((t) => t.trim())
+    .filter(Boolean)
+
   return {
     title: v.title.trim(),
     description: v.description.trim(),
@@ -125,8 +200,8 @@ export function formValuesToInput(v: EventFormValues, status: EventStatus): Even
     posterUrl: v.posterUrl,
     startsAt,
     endsAt,
-    venueName: v.venueName.trim(),
-    address: v.address.trim(),
+    venueName: v.mode === 'online' ? (v.venueName.trim() || 'Online / Virtual') : v.venueName.trim(),
+    address: v.mode === 'online' ? (v.address.trim() || 'Online Event Platform') : v.address.trim(),
     localityId: v.localityId,
     lat: v.lat,
     lng: v.lng,
@@ -134,6 +209,16 @@ export function formValuesToInput(v: EventFormValues, status: EventStatus): Even
     capacity: Number(v.capacity) || 1,
     registrationUrl: v.registrationUrl.trim() || undefined,
     status,
-    tags: [],
+    tags: tracks,
+
+    mode: v.mode,
+    eligibility: v.eligibility.trim() || undefined,
+    minTeamSize: Number(v.minTeamSize) || 1,
+    maxTeamSize: Number(v.maxTeamSize) || 4,
+    registrationDeadline: v.registrationDeadline ? new Date(`${v.registrationDeadline}T23:59:59Z`).toISOString() : undefined,
+    submissionDeadline: v.submissionDeadline ? new Date(`${v.submissionDeadline}T23:59:59Z`).toISOString() : undefined,
+    rules: v.rules.trim() || undefined,
+    prizesSummary: v.prizesSummary.trim() || undefined,
+    tracks: tracks.length > 0 ? tracks : undefined,
   } as EventInput
 }

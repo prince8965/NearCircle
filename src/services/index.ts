@@ -9,6 +9,7 @@ export {
   createEvent,
   updateEvent,
   cancelEvent,
+  deleteDraftEvent,
   defaultFilters,
 } from './eventService'
 export { createRSVP, cancelRSVP, getMyEvents } from './rsvpService'
@@ -31,6 +32,9 @@ export {
   reportPost,
   getOrganizations,
   getOrganizationById,
+  getOrganizationByOwnerId,
+  createOrganization,
+  updateOrganization,
   followOrganization,
   unfollowOrganization,
   getCurrentUserId,

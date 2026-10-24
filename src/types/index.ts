@@ -11,7 +11,7 @@ export const CATEGORIES = [
 
 export type Category = (typeof CATEGORIES)[number]
 
-export type EventStatus = 'published' | 'draft' | 'cancelled'
+export type EventStatus = 'published' | 'draft' | 'completed' | 'cancelled'
 
 export type UserRole = 'participant' | 'organizer' | 'judge' | 'admin'
 
@@ -71,12 +71,25 @@ export interface Event {
   baseCheckIns: number
   organizerName: string
   ownerId: string
+  organizationId?: string
   communityId?: string
   registrationUrl?: string
   status: EventStatus
   tags: string[]
   /** True for seed data shipped with the prototype. */
   isDemo: boolean
+
+  // Extended hackathon / event fields matching core schema
+  slug?: string
+  mode?: 'in-person' | 'online' | 'hybrid'
+  eligibility?: string
+  registrationDeadline?: string
+  submissionDeadline?: string
+  minTeamSize?: number
+  maxTeamSize?: number
+  rules?: string
+  prizesSummary?: string
+  tracks?: string[]
 }
 
 export interface EventWithMeta extends Event {
@@ -112,11 +125,15 @@ export interface RSVP {
 export interface OrganizerAnalytics {
   totalEvents: number
   publishedEvents: number
+  draftEvents: number
+  completedEvents: number
+  cancelledEvents: number
   totalRsvps: number
   totalCheckIns: number
   /** 0..1 */
   attendanceRate: number
-  isMock: true
+  isMock?: boolean
+  isRealData?: boolean
 }
 
 export type DateFilter = 'any' | 'today' | 'week' | 'weekend' | 'custom'
@@ -253,6 +270,12 @@ export interface Organization {
   followerCount: number
   isFollowing?: boolean
   upcomingEventIds?: string[]
+  ownerId?: string
+  eventCount?: number
+  rules?: string
+  eligibility?: string
+  createdAt?: string
+  updatedAt?: string
 }
 
 export interface PostReport {

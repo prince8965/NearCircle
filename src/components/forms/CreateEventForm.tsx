@@ -158,18 +158,42 @@ export function CreateEventForm({
         </section>
 
         <section className="card space-y-5 p-5 sm:p-6" aria-labelledby="sec-where">
-          <h2 id="sec-where" className="text-lg font-semibold">Venue &amp; location</h2>
+          <div className="flex items-center justify-between">
+            <h2 id="sec-where" className="text-lg font-semibold text-white">Event Mode &amp; Location</h2>
+            <div className="flex rounded-lg bg-[#0F172A] border border-[#334155] p-1">
+              {(['in-person', 'online', 'hybrid'] as const).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => set('mode', m)}
+                  className={`rounded-md px-3 py-1 text-xs font-semibold capitalize transition ${
+                    values.mode === m ? 'bg-brand text-[#0B0F19]' : 'text-ink-muted hover:text-white'
+                  }`}
+                >
+                  {m}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="grid gap-5 sm:grid-cols-2">
-            <FormField id="field-venueName" label="Venue name" required error={err('venueName')} flag={flags?.venueName}>
+            <FormField
+              id="field-venueName"
+              label={values.mode === 'online' ? 'Platform / Online Venue' : 'Venue name'}
+              required={values.mode !== 'online'}
+              error={err('venueName')}
+              flag={flags?.venueName}
+            >
               <input
                 id="field-venueName"
                 className={`input ${invalid('venueName')}`}
                 value={values.venueName}
+                placeholder={values.mode === 'online' ? 'e.g. Discord, Zoom, or Google Meet' : 'e.g. Main Auditorium'}
                 onChange={(e) => set('venueName', e.target.value)}
                 aria-invalid={!!err('venueName')}
               />
             </FormField>
-            <FormField id="field-localityId" label="Locality" required>
+            <FormField id="field-localityId" label="Locality Hub" required>
               <select
                 id="field-localityId"
                 className="input"
@@ -187,27 +211,113 @@ export function CreateEventForm({
               </select>
             </FormField>
           </div>
-          <FormField id="field-address" label="Venue address" required error={err('address')} flag={flags?.address}>
+
+          {values.mode !== 'online' && (
+            <>
+              <FormField id="field-address" label="Venue address" required error={err('address')} flag={flags?.address}>
+                <input
+                  id="field-address"
+                  className={`input ${invalid('address')}`}
+                  value={values.address}
+                  onChange={(e) => set('address', e.target.value)}
+                  aria-invalid={!!err('address')}
+                />
+              </FormField>
+              <div>
+                <p className="label">Pin the exact spot</p>
+                <MapPicker
+                  value={{ lat: values.lat, lng: values.lng }}
+                  onChange={(p) => setValues((v) => ({ ...v, lat: p.lat, lng: p.lng }))}
+                />
+                <p className="mt-1 text-xs text-ink-faint">Click the map or drag the pin. Without a map key, the locality centre is used.</p>
+              </div>
+            </>
+          )}
+        </section>
+
+        <section className="card space-y-5 p-5 sm:p-6" aria-labelledby="sec-hackathon">
+          <h2 id="sec-hackathon" className="text-lg font-semibold text-white">Hackathon &amp; Rules Configuration</h2>
+          <div className="grid gap-5 sm:grid-cols-2">
+            <FormField id="field-minTeamSize" label="Min Team Size" error={err('minTeamSize')}>
+              <input
+                id="field-minTeamSize"
+                type="number"
+                min={1}
+                max={20}
+                className={`input ${invalid('minTeamSize')}`}
+                value={values.minTeamSize}
+                onChange={(e) => set('minTeamSize', e.target.value)}
+              />
+            </FormField>
+            <FormField id="field-maxTeamSize" label="Max Team Size" error={err('maxTeamSize')}>
+              <input
+                id="field-maxTeamSize"
+                type="number"
+                min={1}
+                max={20}
+                className={`input ${invalid('maxTeamSize')}`}
+                value={values.maxTeamSize}
+                onChange={(e) => set('maxTeamSize', e.target.value)}
+              />
+            </FormField>
+          </div>
+
+          <div className="grid gap-5 sm:grid-cols-2">
+            <FormField id="field-registrationDeadline" label="Registration Deadline (Optional)" error={err('registrationDeadline')}>
+              <input
+                id="field-registrationDeadline"
+                type="date"
+                className={`input ${invalid('registrationDeadline')}`}
+                value={values.registrationDeadline}
+                onChange={(e) => set('registrationDeadline', e.target.value)}
+              />
+            </FormField>
+            <FormField id="field-submissionDeadline" label="Submission Deadline (Optional)" error={err('submissionDeadline')}>
+              <input
+                id="field-submissionDeadline"
+                type="date"
+                className={`input ${invalid('submissionDeadline')}`}
+                value={values.submissionDeadline}
+                onChange={(e) => set('submissionDeadline', e.target.value)}
+              />
+            </FormField>
+          </div>
+
+          <FormField id="field-tracks" label="Tracks / Domains (comma-separated)">
             <input
-              id="field-address"
-              className={`input ${invalid('address')}`}
-              value={values.address}
-              onChange={(e) => set('address', e.target.value)}
-              aria-invalid={!!err('address')}
+              id="field-tracks"
+              className="input"
+              value={values.tracks}
+              placeholder="e.g. AI/ML, Web3, FinTech, Open Innovation"
+              onChange={(e) => set('tracks', e.target.value)}
             />
           </FormField>
-          <div>
-            <p className="label">Pin the exact spot</p>
-            <MapPicker
-              value={{ lat: values.lat, lng: values.lng }}
-              onChange={(p) => setValues((v) => ({ ...v, lat: p.lat, lng: p.lng }))}
+
+          <FormField id="field-prizesSummary" label="Prizes &amp; Rewards">
+            <textarea
+              id="field-prizesSummary"
+              rows={3}
+              className="input"
+              value={values.prizesSummary}
+              placeholder="e.g. 1st Place: ₹50,000 + Cloud Credits, 2nd Place: ₹25,000"
+              onChange={(e) => set('prizesSummary', e.target.value)}
             />
-            <p className="mt-1 text-xs text-ink-faint">Click the map or drag the pin. Without a map key, the locality centre is used.</p>
-          </div>
+          </FormField>
+
+          <FormField id="field-rules" label="Rules &amp; Guidelines">
+            <textarea
+              id="field-rules"
+              rows={4}
+              className="input"
+              value={values.rules}
+              placeholder="Eligibility criteria, code of conduct, submission format, and judging criteria"
+              onChange={(e) => set('rules', e.target.value)}
+            />
+          </FormField>
         </section>
 
         <section className="card space-y-5 p-5 sm:p-6" aria-labelledby="sec-tickets">
-          <h2 id="sec-tickets" className="text-lg font-semibold text-white">Tickets &amp; registration</h2>
+          <h2 id="sec-tickets" className="text-lg font-semibold text-white">Tickets &amp; Registration Link</h2>
           <div className="flex items-center justify-between rounded-xl bg-[#0F172A] border border-[#334155] px-4 py-3">
             <div>
               <p id="free-label" className="text-sm font-medium text-white">Free event</p>

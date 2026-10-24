@@ -77,6 +77,11 @@ export default function EventDetailsPage() {
           <header>
             <div className="mb-3 flex flex-wrap items-center gap-2">
               <CategoryChip category={event.category} size="sm" />
+              {event.mode && (
+                <span className="rounded-full bg-brand/10 border border-brand/30 px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide text-brand">
+                  {event.mode}
+                </span>
+              )}
               {event.isDemo && <span className="rounded-full bg-[#0F172A] border border-[#334155] px-2.5 py-1 text-xs font-medium text-ink-muted">Demo event</span>}
             </div>
             <h1 className="text-2xl font-bold tracking-tight text-white sm:text-4xl">{event.title}</h1>
@@ -94,6 +99,56 @@ export default function EventDetailsPage() {
               </div>
             )}
           </section>
+
+          {(event.minTeamSize || event.maxTeamSize || event.registrationDeadline || event.submissionDeadline || event.prizesSummary || event.rules) && (
+            <section aria-labelledby="hackathon-details" className="card space-y-4 p-5 sm:p-6">
+              <h2 id="hackathon-details" className="text-lg font-semibold text-white">Hackathon &amp; Participation Details</h2>
+              <div className="grid gap-4 sm:grid-cols-2 text-sm">
+                {(event.minTeamSize || event.maxTeamSize) && (
+                  <div className="rounded-xl bg-[#0F172A] border border-[#334155] p-3.5">
+                    <p className="text-xs uppercase font-medium text-ink-faint">Team Size</p>
+                    <p className="font-semibold text-white mt-1">
+                      {event.minTeamSize === event.maxTeamSize
+                        ? `${event.minTeamSize || 1} Member`
+                        : `${event.minTeamSize || 1} - ${event.maxTeamSize || 4} Members`}
+                    </p>
+                  </div>
+                )}
+                {event.registrationDeadline && (
+                  <div className="rounded-xl bg-[#0F172A] border border-[#334155] p-3.5">
+                    <p className="text-xs uppercase font-medium text-ink-faint">Registration Closes</p>
+                    <p className="font-semibold text-white mt-1">{formatLongDate(event.registrationDeadline)}</p>
+                  </div>
+                )}
+                {event.submissionDeadline && (
+                  <div className="rounded-xl bg-[#0F172A] border border-[#334155] p-3.5">
+                    <p className="text-xs uppercase font-medium text-ink-faint">Submissions Deadline</p>
+                    <p className="font-semibold text-white mt-1">{formatLongDate(event.submissionDeadline)}</p>
+                  </div>
+                )}
+                {event.eligibility && (
+                  <div className="rounded-xl bg-[#0F172A] border border-[#334155] p-3.5">
+                    <p className="text-xs uppercase font-medium text-ink-faint">Eligibility</p>
+                    <p className="font-semibold text-white mt-1">{event.eligibility}</p>
+                  </div>
+                )}
+              </div>
+
+              {event.prizesSummary && (
+                <div className="space-y-1.5 pt-2">
+                  <h3 className="text-sm font-semibold text-brand">Prizes &amp; Rewards</h3>
+                  <p className="whitespace-pre-line text-sm text-ink-muted leading-relaxed">{event.prizesSummary}</p>
+                </div>
+              )}
+
+              {event.rules && (
+                <div className="space-y-1.5 pt-2">
+                  <h3 className="text-sm font-semibold text-brand">Rules &amp; Guidelines</h3>
+                  <p className="whitespace-pre-line text-sm text-ink-muted leading-relaxed">{event.rules}</p>
+                </div>
+              )}
+            </section>
+          )}
 
           <section aria-labelledby="when-where" className="card p-5 sm:p-6">
             <h2 id="when-where" className="mb-4 text-lg font-semibold text-white">When &amp; where</h2>
