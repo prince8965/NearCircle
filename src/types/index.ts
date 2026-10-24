@@ -138,7 +138,22 @@ export interface OrganizerAnalytics {
 
 export type DateFilter = 'any' | 'today' | 'week' | 'weekend' | 'custom'
 export type PriceFilter = 'all' | 'free' | 'paid'
-export type SortKey = 'soonest' | 'nearest' | 'recommended'
+export type SortKey = 'soonest' | 'nearest' | 'recommended' | 'deadline'
+export type EventModeFilter = 'all' | 'in-person' | 'online' | 'hybrid'
+export type TeamSizeFilter = 'all' | 'solo' | 'team'
+
+export const POPULAR_TECHNOLOGIES = [
+  'React',
+  'Python',
+  'AI/ML',
+  'TypeScript',
+  'Node.js',
+  'Rust',
+  'Web3',
+  'Flutter',
+  'Next.js',
+  'Cloud',
+] as const
 
 export interface EventFilters {
   query: string
@@ -151,6 +166,25 @@ export interface EventFilters {
   sort: SortKey
   localityId: string
   interests: Category[]
+
+  // Phase 6 Hackathon / Event Discovery extensions:
+  mode?: EventModeFilter
+  technology?: string
+  hasPrizes?: boolean
+  teamSize?: TeamSizeFilter
+  openRegistrationOnly?: boolean
+
+  // Pagination
+  page?: number
+  pageSize?: number
+}
+
+export interface PaginatedEvents {
+  events: EventWithMeta[]
+  totalCount: number
+  page: number
+  pageSize: number
+  totalPages: number
 }
 
 export type EventInput = Omit<
@@ -272,6 +306,8 @@ export interface Organization {
   upcomingEventIds?: string[]
   ownerId?: string
   eventCount?: number
+  completedEventsCount?: number
+  upcomingEventsCount?: number
   rules?: string
   eligibility?: string
   createdAt?: string
@@ -287,3 +323,85 @@ export interface PostReport {
   createdAt: string
 }
 
+/* ==========================================================================
+   Phase 7: Event Registrations & Team Management Types
+   ========================================================================== */
+
+export type RegistrationStatus = 'confirmed' | 'cancelled' | 'waitlisted' | 'checked_in'
+
+export interface EventRegistration {
+  id: string
+  eventId: string
+  userId: string
+  status: RegistrationStatus
+  ticketCode: string
+  customAnswers?: Record<string, any>
+  createdAt: string
+  updatedAt: string
+}
+
+export interface EventRegistrationWithEvent {
+  registration: EventRegistration
+  event: EventWithMeta
+  isPast: boolean
+  team?: TeamWithMembers | null
+}
+
+export interface EventRegistrationAttendee {
+  registrationId: string
+  userId: string
+  status: RegistrationStatus
+  ticketCode: string
+  createdAt: string
+  userFullName: string
+  userEmail: string
+  userAvatar?: string
+  teamId?: string
+  teamName?: string
+  teamRole?: 'leader' | 'member'
+}
+
+export type TeamRole = 'leader' | 'member'
+export type TeamInviteStatus = 'pending' | 'accepted' | 'declined' | 'cancelled'
+
+export interface TeamMember {
+  id: string
+  teamId: string
+  userId: string
+  role: TeamRole
+  joinedAt: string
+  user?: {
+    id: string
+    name: string
+    email: string
+    avatarUrl?: string
+  }
+}
+
+export interface Team {
+  id: string
+  eventId: string
+  name: string
+  inviteCode: string
+  leaderId: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface TeamWithMembers extends Team {
+  members: TeamMember[]
+  isLeader?: boolean
+  isMember?: boolean
+}
+
+export interface TeamInvite {
+  id: string
+  teamId: string
+  teamName?: string
+  eventId?: string
+  eventTitle?: string
+  invitedEmail: string
+  invitedUserId?: string
+  status: TeamInviteStatus
+  createdAt: string
+}

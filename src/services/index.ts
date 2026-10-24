@@ -5,6 +5,9 @@ export {
   getEvents,
   getEventById,
   searchEvents,
+  searchHackathons,
+  getOrganizationCompletedEventsCount,
+  getOrganizationPublicEvents,
   getOrganizerEvents,
   createEvent,
   updateEvent,
@@ -40,5 +43,25 @@ export {
   getCurrentUserId,
 } from './communityPostService'
 export type { CommunityFeedOptions } from './communityPostService'
+export {
+  registerForEvent,
+  cancelRegistration,
+  getRegistrationForEvent,
+  getMyRegistrations,
+  getEventAttendees,
+  updateAttendeeStatus,
+} from './registrationService'
+export {
+  createTeam,
+  joinTeamByInviteCode,
+  getTeamForEvent,
+  getTeamById,
+  inviteTeamMember,
+  getMyPendingInvites,
+  respondToInvite,
+  removeTeamMember,
+  leaveTeam,
+  disbandTeam,
+} from './teamService'
 export { supabase, isSupabaseConfigured } from '../lib/supabase'
 

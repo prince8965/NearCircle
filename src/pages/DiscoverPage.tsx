@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, CalendarSearch, Flame, Navigation, PlusCircle, SlidersHorizontal } from 'lucide-react'
+import { ArrowRight, CalendarSearch, ChevronLeft, ChevronRight, Flame, Navigation, PlusCircle, SlidersHorizontal } from 'lucide-react'
 import { EventCard } from '../components/events/EventCard'
 import { FilterPanel } from '../components/events/FilterPanel'
 import { LocationSelector } from '../components/events/LocationSelector'
@@ -12,7 +12,7 @@ import { EventGridSkeleton } from '../components/ui/Skeleton'
 import { DemoNote } from '../components/ui/DemoNote'
 import { useApp } from '../hooks/AppContext'
 import { useAsync } from '../hooks/useAsync'
-import { defaultFilters, searchEvents } from '../services'
+import { defaultFilters, searchEvents, searchHackathons, isSupabaseConfigured } from '../services'
 import { CATEGORIES, type Category, type EventFilters } from '../types'
 import { getLocality } from '../data/localities'
 
@@ -26,6 +26,13 @@ const INITIAL: FilterState = {
   price: 'all',
   radiusKm: 0,
   sort: 'recommended',
+  mode: 'all',
+  technology: undefined,
+  hasPrizes: false,
+  teamSize: 'all',
+  openRegistrationOnly: false,
+  page: 1,
+  pageSize: 9,
 }
 
 export default function DiscoverPage() {
@@ -40,9 +47,9 @@ export default function DiscoverPage() {
     [localityId, interests],
   )
 
-  // Unfiltered list drives the Featured and Nearby sections; the filtered list drives the results grid.
+  // Unfiltered list drives Featured and Nearby sections; searchHackathons drives the paginated results grid
   const base = useAsync(() => searchEvents(baseFilters), [baseFilters])
-  const results = useAsync(() => searchEvents(filters), [filters])
+  const results = useAsync(() => searchHackathons(filters), [filters])
 
   const featured = useMemo(() => (base.data ?? []).slice(0, 3), [base.data])
   const nearby = useMemo(
@@ -59,14 +66,24 @@ export default function DiscoverPage() {
     (state.category !== 'all' ? 1 : 0) +
     (state.date !== 'any' ? 1 : 0) +
     (state.price !== 'all' ? 1 : 0) +
-    (state.radiusKm > 0 ? 1 : 0)
+    (state.radiusKm > 0 ? 1 : 0) +
+    (state.mode && state.mode !== 'all' ? 1 : 0) +
+    (state.technology ? 1 : 0) +
+    (state.hasPrizes ? 1 : 0) +
+    (state.teamSize && state.teamSize !== 'all' ? 1 : 0) +
+    (state.openRegistrationOnly ? 1 : 0)
 
   const patch = (p: Partial<EventFilters>) => setState((s) => ({ ...s, ...p }))
   const clear = () => setState(INITIAL)
   const scrollToResults = () => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 
   const pickCategory = (c: Category | 'all') => {
-    patch({ category: state.category === c ? 'all' : c })
+    patch({ category: state.category === c ? 'all' : c, page: 1 })
+    scrollToResults()
+  }
+
+  const setPage = (pageNumber: number) => {
+    patch({ page: pageNumber })
     scrollToResults()
   }
 
@@ -116,10 +133,12 @@ export default function DiscoverPage() {
       </section>
 
       <div className="mx-auto max-w-7xl space-y-14 px-4 py-10 sm:px-6 lg:px-8">
-        <DemoNote>
-          All events, venues and organizers on NearCircle are fictional demo content. Distances are approximate and
-          measured from the centre of {locality.name}.
-        </DemoNote>
+        {!isSupabaseConfigured() && (
+          <DemoNote>
+            All events, venues and organizers on NearCircle are fictional demo content. Distances are approximate and
+            measured from the centre of {locality.name}.
+          </DemoNote>
+        )}
 
         {/* Featured */}
         <section aria-labelledby="featured-title">
@@ -164,9 +183,9 @@ export default function DiscoverPage() {
               <h2 id="all-title" className="text-xl font-bold text-white">All upcoming events</h2>
               <p className="text-sm text-ink-muted" aria-live="polite">
                 {results.loading
-                  ? 'Searching…'
+                  ? 'Searching events…'
                   : results.data
-                    ? `${results.data.length} ${results.data.length === 1 ? 'event' : 'events'} found`
+                    ? `${results.data.totalCount} ${results.data.totalCount === 1 ? 'event' : 'events'} found`
                     : ''}
               </p>
             </div>
@@ -199,7 +218,7 @@ export default function DiscoverPage() {
                 <EventGridSkeleton count={6} />
               ) : results.error ? (
                 <ErrorState message={results.error} onRetry={results.reload} />
-              ) : results.data && results.data.length === 0 ? (
+              ) : results.data && results.data.events.length === 0 ? (
                 <EmptyState
                   icon={CalendarSearch}
                   title="No events match your filters"
@@ -208,11 +227,70 @@ export default function DiscoverPage() {
                   onAction={clear}
                 />
               ) : (
-                <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                  {results.data?.map((e) => (
-                    <EventCard key={e.id} event={e} />
-                  ))}
-                </div>
+                <>
+                  <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                    {results.data?.events.map((e) => (
+                      <EventCard key={e.id} event={e} />
+                    ))}
+                  </div>
+
+                  {/* Pagination Controls */}
+                  {results.data && results.data.totalPages > 1 && (() => {
+                    const pagination = results.data
+                    return (
+                      <div className="mt-8 flex flex-col items-center justify-between gap-4 border-t border-[#1E293B] pt-6 sm:flex-row">
+                        <p className="text-xs text-ink-muted">
+                          Showing{' '}
+                          <strong className="text-white">
+                            {(pagination.page - 1) * pagination.pageSize + 1}
+                          </strong>{' '}
+                          to{' '}
+                          <strong className="text-white">
+                            {Math.min(pagination.page * pagination.pageSize, pagination.totalCount)}
+                          </strong>{' '}
+                          of <strong className="text-white">{pagination.totalCount}</strong> events
+                        </p>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            disabled={pagination.page <= 1}
+                            onClick={() => setPage(pagination.page - 1)}
+                            className="btn-secondary px-3 py-1.5 text-xs flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed"
+                          >
+                            <ChevronLeft className="h-4 w-4" /> Previous
+                          </button>
+
+                          <div className="flex items-center gap-1">
+                            {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((p) => (
+                              <button
+                                key={p}
+                                type="button"
+                                onClick={() => setPage(p)}
+                                className={`h-8 w-8 rounded-lg text-xs font-semibold transition ${
+                                  pagination.page === p
+                                    ? 'bg-brand text-[#0B0F19] shadow-cyber'
+                                    : 'bg-[#0F172A] border border-[#334155] text-ink-muted hover:text-white'
+                                }`}
+                              >
+                                {p}
+                              </button>
+                            ))}
+                          </div>
+
+                          <button
+                            type="button"
+                            disabled={pagination.page >= pagination.totalPages}
+                            onClick={() => setPage(pagination.page + 1)}
+                            className="btn-secondary px-3 py-1.5 text-xs flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed"
+                          >
+                            Next <ChevronRight className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  })()}
+                </>
               )}
             </div>
           </div>

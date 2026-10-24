@@ -1,11 +1,14 @@
+import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, CalendarDays, CalendarX2, Clock, ExternalLink, MapPin, MessageSquare, Navigation, Ticket, Users } from 'lucide-react'
+import { ArrowLeft, ArrowRight, CalendarDays, CalendarX2, CheckCircle2, Clock, ExternalLink, MapPin, MessageSquare, Navigation, Ticket, Users } from 'lucide-react'
 import { EventCard } from '../components/events/EventCard'
 import { EventPoster } from '../components/events/EventPoster'
 import { RSVPButton } from '../components/events/RSVPButton'
+import { RegistrationModal } from '../components/events/RegistrationModal'
+import { TeamSection } from '../components/teams/TeamSection'
 import { MapView } from '../components/maps/MapView'
 import { CategoryChip } from '../components/ui/CategoryChip'
-import { DemoNote } from '../components/ui/DemoNote'
+import { CategoryIcon } from '../components/ui/CategoryIcon'
 import { EmptyState } from '../components/ui/EmptyState'
 import { ErrorState } from '../components/ui/ErrorState'
 import { Skeleton } from '../components/ui/Skeleton'
@@ -13,17 +16,45 @@ import { getLocality } from '../data/localities'
 import { SEED_COMMUNITIES } from '../data/communities'
 import { useApp } from '../hooks/AppContext'
 import { useAsync } from '../hooks/useAsync'
-import { getEventById, searchEvents, defaultFilters } from '../services'
+import {
+  getEventById,
+  searchEvents,
+  defaultFilters,
+  getOrganizationById,
+  getOrganizationByOwnerId,
+  getOrganizationCompletedEventsCount,
+  getRegistrationForEvent,
+} from '../services'
 import { formatDistance, formatLongDate, formatPrice, formatTimeRange } from '../utils/format'
 
 export default function EventDetailsPage() {
   const { id = '' } = useParams()
   const { localityId, interests } = useApp()
   const { data: event, loading, error, reload } = useAsync(() => getEventById(id, localityId, interests), [id, localityId, interests])
+  const registration = useAsync(() => getRegistrationForEvent(id), [id])
+  const [regModalOpen, setRegModalOpen] = useState(false)
   const related = useAsync(
     () => searchEvents({ ...defaultFilters, localityId, interests }),
     [localityId, interests],
   )
+
+  const orgResult = useAsync(async () => {
+    if (!event) return null
+    if (event.organizationId) {
+      const org = await getOrganizationById(event.organizationId)
+      if (org) return org
+    }
+    if (event.ownerId) {
+      const org = await getOrganizationByOwnerId(event.ownerId)
+      if (org) return org
+    }
+    return null
+  }, [event?.organizationId, event?.ownerId])
+
+  const completedCountResult = useAsync(async () => {
+    if (!orgResult.data?.id) return 0
+    return await getOrganizationCompletedEventsCount(orgResult.data.id)
+  }, [orgResult.data?.id])
 
   if (loading)
     return (
@@ -191,6 +222,16 @@ export default function EventDetailsPage() {
               <MapView lat={event.lat} lng={event.lng} title={event.venueName} address={`${event.venueName}, ${event.address}`} />
             </div>
           </section>
+
+          {/* Phase 7: Team Formation & Management Section */}
+          <TeamSection
+            event={event}
+            isRegistered={!!registration.data || event.isRsvped}
+            onUpdate={() => {
+              void reload()
+              void registration.reload()
+            }}
+          />
         </div>
 
         <aside className="space-y-5 lg:sticky lg:top-24 lg:self-start" aria-label="Tickets and organizer">
@@ -202,6 +243,23 @@ export default function EventDetailsPage() {
               </div>
               <Ticket className="h-8 w-8 text-brand" aria-hidden />
             </div>
+
+            {/* Confirmed Registration Pass */}
+            {(registration.data || event.isRsvped) && (
+              <div className="rounded-xl border border-dashed border-[#00F2FE]/40 bg-[#0F172A] p-3 text-xs space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase font-bold text-ink-faint">Your Digital Pass</span>
+                  <span className="rounded-full bg-emerald-950/60 border border-emerald-500/40 px-2 py-0.5 text-[10px] font-semibold text-emerald-300">
+                    Active
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 font-mono text-sm text-white font-bold">
+                  <Ticket className="h-4 w-4 text-brand" />
+                  <span>{registration.data?.ticketCode ?? 'NC-CONFIRMED'}</span>
+                </div>
+              </div>
+            )}
+
             <div className="flex items-center gap-2 text-sm text-ink-muted">
               <Users className="h-4 w-4 text-brand" aria-hidden />
               {event.seatsLeft > 0 ? (
@@ -216,6 +274,15 @@ export default function EventDetailsPage() {
               <div className="h-full rounded-full bg-brand shadow-[0_0_10px_rgba(0,242,254,0.5)]" style={{ width: `${Math.min(100, (event.rsvpCount / event.capacity) * 100)}%` }} />
             </div>
             <RSVPButton event={event} size="lg" className="w-full" />
+            {!event.isRsvped && !registration.data && event.seatsLeft > 0 && (
+              <button
+                type="button"
+                onClick={() => setRegModalOpen(true)}
+                className="btn-secondary w-full text-xs py-2"
+              >
+                Detailed Registration Form
+              </button>
+            )}
             <Link
               to={`/community?shareEventId=${event.id}`}
               className="btn-secondary w-full flex items-center justify-center gap-2 text-xs"
@@ -228,18 +295,66 @@ export default function EventDetailsPage() {
                 Organizer’s registration page <ExternalLink className="h-4 w-4" aria-hidden />
               </a>
             )}
-            <DemoNote>Capacity checks here are a frontend simulation. A real backend must enforce limits.</DemoNote>
+            <RegistrationModal
+              open={regModalOpen}
+              event={event}
+              onClose={() => setRegModalOpen(false)}
+              onSuccess={() => {
+                void reload()
+                void registration.reload()
+                setRegModalOpen(false)
+              }}
+            />
           </div>
 
-          <div className="card p-5 sm:p-6">
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink-faint">Organizer</h2>
-            <p className="font-semibold text-white">{event.organizerName}</p>
-            {community ? (
-              <Link to={`/communities/${community.id}`} className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-brand hover:underline">
-                View the {community.name} community →
-              </Link>
+          <div className="card p-5 sm:p-6 space-y-3">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-faint">Organizer</h2>
+            {orgResult.data ? (
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <div
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl font-bold text-[#0B0F19] shadow-card"
+                    style={{ backgroundColor: orgResult.data.accentColor || '#00F2FE' }}
+                  >
+                    <CategoryIcon category={orgResult.data.category} className="h-6 w-6" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <p className="font-semibold text-white truncate">{orgResult.data.name}</p>
+                      {orgResult.data.isVerified && (
+                        <span title="Verified Campus Organization" className="inline-flex items-center">
+                          <CheckCircle2 className="h-4 w-4 fill-brand text-[#0B0F19]" />
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-ink-muted">
+                      {orgResult.data.followerCount} followers · {completedCountResult.data ?? 0} conducted events
+                    </p>
+                  </div>
+                </div>
+
+                <p className="text-xs text-ink-muted line-clamp-2 leading-relaxed">
+                  {orgResult.data.description}
+                </p>
+
+                <Link
+                  to={`/organizations/${orgResult.data.id}`}
+                  className="btn-secondary w-full text-center text-xs flex items-center justify-center gap-1.5 font-semibold py-2"
+                >
+                  Inspect Organization Profile <ArrowRight className="h-3.5 w-3.5 text-brand" />
+                </Link>
+              </div>
             ) : (
-              <p className="mt-1 text-sm text-ink-muted">Independent organizer</p>
+              <div>
+                <p className="font-semibold text-white">{event.organizerName}</p>
+                {community ? (
+                  <Link to={`/communities/${community.id}`} className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-brand hover:underline">
+                    View the {community.name} community →
+                  </Link>
+                ) : (
+                  <p className="mt-1 text-sm text-ink-muted">Independent organizer</p>
+                )}
+              </div>
             )}
           </div>
         </aside>

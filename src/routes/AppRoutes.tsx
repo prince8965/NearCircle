@@ -11,6 +11,7 @@ import EventDetailsPage from '../pages/EventDetailsPage'
 import MyEventsPage from '../pages/MyEventsPage'
 import NotFoundPage from '../pages/NotFoundPage'
 import OrganizerDashboardPage from '../pages/OrganizerDashboardPage'
+import OrganizationProfilePage from '../pages/OrganizationProfilePage'
 import PosterToEventPage from '../pages/PosterToEventPage'
 import UnauthorizedPage from '../pages/UnauthorizedPage'
 import { ProtectedRoute } from './ProtectedRoute'
@@ -23,6 +24,7 @@ export function AppRoutes() {
         {/* Public Routes */}
         <Route index element={<DiscoverPage />} />
         <Route path="events/:id" element={<EventDetailsPage />} />
+        <Route path="organizations/:id" element={<OrganizationProfilePage />} />
         <Route path="login" element={<AuthPage mode="login" />} />
         <Route path="signup" element={<AuthPage mode="signup" />} />
         <Route path="unauthorized" element={<UnauthorizedPage />} />

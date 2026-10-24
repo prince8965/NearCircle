@@ -7,7 +7,18 @@ import { SEED_COMMENTS } from '../data/communityComments'
 import { SEED_POSTS } from '../data/communityPosts'
 import { SEED_EVENTS } from '../data/events'
 import { SEED_ORGANIZATIONS } from '../data/organizations'
-import type { CommunityPost, Event, Organization, PostComment, PostReport, RSVP } from '../types'
+import type {
+  CommunityPost,
+  Event,
+  EventRegistration,
+  Organization,
+  PostComment,
+  PostReport,
+  RSVP,
+  Team,
+  TeamInvite,
+  TeamMember,
+} from '../types'
 import { readStore, writeStore } from '../utils/storage'
 import { notifyChange } from './bus'
 
@@ -15,6 +26,10 @@ void _SEED_COMMUNITIES
 
 const EVENTS_KEY = 'events.v1'
 const RSVPS_KEY = 'rsvps.v1'
+const REGISTRATIONS_KEY = 'event_registrations.v1'
+const TEAMS_KEY = 'teams.v1'
+const TEAM_MEMBERS_KEY = 'team_members.v1'
+const TEAM_INVITES_KEY = 'team_invites.v1'
 const FOLLOWS_KEY = 'follows.v1'
 const COMMUNITY_POSTS_KEY = 'community_posts.v1'
 const POST_LIKES_KEY = 'post_likes.v1'
@@ -141,6 +156,66 @@ export function readPostReports(): PostReport[] {
 
 export function writePostReports(reports: PostReport[]): void {
   writeStore(POST_REPORTS_KEY, reports)
+  notifyChange()
+}
+
+export function readRegistrations(): EventRegistration[] {
+  const stored = readStore<EventRegistration[] | null>(REGISTRATIONS_KEY, null)
+  if (stored) return stored
+  // Default seed: synchronize with RSVP seed if present
+  const rsvps = readRsvps()
+  const seeded: EventRegistration[] = rsvps.map((r) => ({
+    id: r.id,
+    eventId: r.eventId,
+    userId: r.userId,
+    status: r.status === 'going' ? 'confirmed' : 'cancelled',
+    ticketCode: r.ticketCode,
+    createdAt: r.createdAt,
+    updatedAt: r.createdAt,
+  }))
+  writeStore(REGISTRATIONS_KEY, seeded)
+  return seeded
+}
+
+export function writeRegistrations(registrations: EventRegistration[]): void {
+  writeStore(REGISTRATIONS_KEY, registrations)
+  // Also keep rsvps.v1 in sync for backward compatibility with legacy views
+  const legacyRsvps: RSVP[] = registrations.map((reg) => ({
+    id: reg.id,
+    eventId: reg.eventId,
+    userId: reg.userId,
+    status: reg.status === 'confirmed' || reg.status === 'checked_in' ? 'going' : 'cancelled',
+    createdAt: reg.createdAt,
+    ticketCode: reg.ticketCode,
+  }))
+  writeStore(RSVPS_KEY, legacyRsvps)
+  notifyChange()
+}
+
+export function readTeams(): Team[] {
+  return readStore<Team[]>(TEAMS_KEY, [])
+}
+
+export function writeTeams(teams: Team[]): void {
+  writeStore(TEAMS_KEY, teams)
+  notifyChange()
+}
+
+export function readTeamMembers(): TeamMember[] {
+  return readStore<TeamMember[]>(TEAM_MEMBERS_KEY, [])
+}
+
+export function writeTeamMembers(members: TeamMember[]): void {
+  writeStore(TEAM_MEMBERS_KEY, members)
+  notifyChange()
+}
+
+export function readTeamInvites(): TeamInvite[] {
+  return readStore<TeamInvite[]>(TEAM_INVITES_KEY, [])
+}
+
+export function writeTeamInvites(invites: TeamInvite[]): void {
+  writeStore(TEAM_INVITES_KEY, invites)
   notifyChange()
 }
 

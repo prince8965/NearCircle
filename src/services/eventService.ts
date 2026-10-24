@@ -1,6 +1,6 @@
 import { SEED_COMMUNITIES } from '../data/communities'
 import { DEFAULT_LOCALITY_ID, getLocality } from '../data/localities'
-import type { Category, Event, EventFilters, EventInput, EventStatus, EventWithMeta } from '../types'
+import type { Category, Event, EventFilters, EventInput, EventStatus, EventWithMeta, PaginatedEvents } from '../types'
 import { distanceKm } from '../utils/geo'
 import { isSameLocalDay, toDateInput } from '../utils/format'
 import { delay } from './bus'
@@ -19,6 +19,13 @@ export const defaultFilters: EventFilters = {
   sort: 'recommended',
   localityId: DEFAULT_LOCALITY_ID,
   interests: ['AI/ML', 'Web Development', 'Technology'],
+  mode: 'all',
+  technology: undefined,
+  hasPrizes: false,
+  teamSize: 'all',
+  openRegistrationOnly: false,
+  page: 1,
+  pageSize: 9,
 }
 
 function slugify(text: string): string {
@@ -177,19 +184,22 @@ export async function getEventById(
 
       if (!error && data) {
         event = mapDbEventToEvent(data)
+      } else {
+        // Event not found in database; do not leak fake data
+        return null
       }
     } catch (err) {
       console.warn('Could not fetch event by ID from Supabase:', err)
+      return null
     }
-  }
-
-  if (!event) {
+  } else {
     event = readEvents().find((e) => e.id === id)
   }
 
   if (!event) return null
 
-  // Draft ownership security: Drafts cannot be viewed by unauthorized users
+  // Draft & cancelled visibility authorization:
+  // Anonymous visitors and unauthorized participants cannot view drafts or non-public events
   if (event.status === 'draft') {
     const isOwner = session && (session.id === event.ownerId || (session.id === DEMO_OWNER_ID && event.ownerId === DEMO_OWNER_ID))
     const isAdmin = session?.role === 'admin'
@@ -201,12 +211,21 @@ export async function getEventById(
   return enrichEvent(event, buildContext(localityId, interests))
 }
 
-/** Discovery search. Only published, not-yet-ended events are returned. Backend equivalent: GET /events?...  */
-export async function searchEvents(filters: EventFilters): Promise<EventWithMeta[]> {
-  await delay()
+/**
+ * Public discovery search for hackathons and campus events.
+ * Fully supports filtering by category/domain, mode, technologies (tags), location/radius,
+ * registration deadline, prizes, team-size limits, sorting, and pagination.
+ *
+ * When Supabase is configured:
+ * Queries real database records and strictly excludes drafts, cancelled events, and fake mock records.
+ * Backend equivalent: GET /hackathons?...
+ */
+export async function searchHackathons(filters: EventFilters): Promise<PaginatedEvents> {
+  await delay(150)
   const ctx = buildContext(filters.localityId, filters.interests)
   const q = filters.query.trim().toLowerCase()
-  const now = Date.now()
+  const nowIso = new Date().toISOString()
+  const nowDate = Date.now()
 
   let list: Event[] = []
 
@@ -215,43 +234,97 @@ export async function searchEvents(filters: EventFilters): Promise<EventWithMeta
       let query = supabase
         .from('events')
         .select('*')
-        .in('status', ['published', 'completed'])
-        .gte('ends_at', new Date().toISOString())
+        .eq('status', 'published')
+        .gte('ends_at', nowIso)
 
       if (filters.category !== 'all') {
         query = query.eq('category', filters.category)
       }
+      if (filters.mode && filters.mode !== 'all') {
+        query = query.eq('mode', filters.mode)
+      }
+      if (filters.technology) {
+        query = query.contains('tags', [filters.technology])
+      }
+      if (filters.hasPrizes) {
+        query = query.not('prizes_summary', 'is', null)
+      }
+      if (filters.openRegistrationOnly) {
+        query = query.or(`registration_deadline.is.null,registration_deadline.gte.${nowIso}`)
+      }
+      if (filters.teamSize === 'solo') {
+        query = query.lte('min_team_size', 1)
+      } else if (filters.teamSize === 'team') {
+        query = query.gt('max_team_size', 1)
+      }
+      if (filters.price === 'free') {
+        query = query.eq('price', 0)
+      } else if (filters.price === 'paid') {
+        query = query.gt('price', 0)
+      }
 
       const { data, error } = await query
-      if (!error && data && data.length > 0) {
+      if (!error && data) {
         list = data.map(mapDbEventToEvent)
+      } else if (error) {
+        console.warn('Supabase searchHackathons error:', error)
       }
     } catch (err) {
-      console.warn('Supabase searchEvents error, falling back to local events:', err)
+      console.warn('Supabase searchHackathons error:', err)
     }
+  } else {
+    // Local development fallback: Only published and unended events
+    list = readEvents().filter(
+      (e) => e.status === 'published' && new Date(e.endsAt).getTime() >= nowDate,
+    )
   }
 
-  // Merge with local events if not already present
-  const localPublished = readEvents().filter(
-    (e) => e.status === 'published' && new Date(e.endsAt).getTime() >= now,
-  )
-  const seenIds = new Set(list.map((e) => e.id))
-  for (const local of localPublished) {
-    if (!seenIds.has(local.id)) {
-      list.push(local)
-      seenIds.add(local.id)
-    }
-  }
-
-  const results = list
-    .filter((e) => e.status === 'published' && new Date(e.endsAt).getTime() >= now)
-    .filter((e) => (q ? e.title.toLowerCase().includes(q) || e.venueName.toLowerCase().includes(q) : true))
+  // Common filtering across data sources for query, date, radius, etc.
+  let results = list
+    .filter((e) => e.status === 'published' && new Date(e.endsAt).getTime() >= nowDate)
+    .filter((e) => {
+      if (!q) return true
+      return (
+        e.title.toLowerCase().includes(q) ||
+        e.venueName.toLowerCase().includes(q) ||
+        e.description.toLowerCase().includes(q) ||
+        e.tags.some((t) => t.toLowerCase().includes(q))
+      )
+    })
     .filter((e) => (filters.category === 'all' ? true : e.category === filters.category))
+    .filter((e) => {
+      if (!filters.mode || filters.mode === 'all') return true
+      return (e.mode || 'in-person') === filters.mode
+    })
+    .filter((e) => {
+      if (!filters.technology) return true
+      return e.tags.some((t) => t.toLowerCase() === filters.technology?.toLowerCase())
+    })
+    .filter((e) => {
+      if (!filters.hasPrizes) return true
+      return Boolean(e.prizesSummary && e.prizesSummary.trim().length > 0)
+    })
+    .filter((e) => {
+      if (!filters.openRegistrationOnly) return true
+      if (!e.registrationDeadline) return true
+      return new Date(e.registrationDeadline).getTime() >= nowDate
+    })
+    .filter((e) => {
+      if (!filters.teamSize || filters.teamSize === 'all') return true
+      if (filters.teamSize === 'solo') return (e.minTeamSize ?? 1) <= 1
+      if (filters.teamSize === 'team') return (e.maxTeamSize ?? 4) > 1
+      return true
+    })
     .filter((e) => matchesDate(e, filters))
     .filter((e) => (filters.price === 'free' ? e.price === 0 : filters.price === 'paid' ? e.price > 0 : true))
     .map((e) => enrichEvent(e, ctx))
-    .filter((e) => (filters.radiusKm > 0 ? (e.distanceKm ?? Infinity) <= filters.radiusKm : true))
+    .filter((e) => {
+      // For online events, distance radius is ignored; otherwise enforce radius
+      if (e.mode === 'online') return true
+      return filters.radiusKm > 0 ? (e.distanceKm ?? Infinity) <= filters.radiusKm : true
+    })
 
+  // Sorting
   switch (filters.sort) {
     case 'soonest':
       results.sort((a, b) => a.startsAt.localeCompare(b.startsAt))
@@ -259,10 +332,156 @@ export async function searchEvents(filters: EventFilters): Promise<EventWithMeta
     case 'nearest':
       results.sort((a, b) => (a.distanceKm ?? 0) - (b.distanceKm ?? 0))
       break
+    case 'deadline':
+      results.sort((a, b) => {
+        if (!a.registrationDeadline && !b.registrationDeadline) return 0
+        if (!a.registrationDeadline) return 1
+        if (!b.registrationDeadline) return -1
+        return a.registrationDeadline.localeCompare(b.registrationDeadline)
+      })
+      break
     default:
       results.sort((a, b) => b.recommendationScore - a.recommendationScore)
   }
-  return results
+
+  // Pagination calculation
+  const totalCount = results.length
+  const page = Math.max(1, filters.page ?? 1)
+  const pageSize = Math.max(1, filters.pageSize ?? 9)
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize))
+  const start = (page - 1) * pageSize
+  const paginatedItems = results.slice(start, start + pageSize)
+
+  return {
+    events: paginatedItems,
+    totalCount,
+    page,
+    pageSize,
+    totalPages,
+  }
+}
+
+/** Legacy discovery search adapter. Backend equivalent: GET /events?... */
+export async function searchEvents(filters: EventFilters): Promise<EventWithMeta[]> {
+  const result = await searchHackathons({ ...filters, page: 1, pageSize: filters.pageSize ?? 100 })
+  return result.events
+}
+
+/**
+ * Calculates completed / conducted events count from real database records.
+ * Strict Criteria:
+ * - Belongs to organization (organization_id == orgId)
+ * - Real record: is_demo is false (mock records excluded)
+ * - Status is NOT draft and NOT cancelled
+ * - Event status is 'completed' OR (status is 'published' and ends_at < now)
+ */
+export async function getOrganizationCompletedEventsCount(orgId: string): Promise<number> {
+  if (isSupabaseConfigured()) {
+    try {
+      const { data, error } = await supabase.rpc('get_organization_completed_count', { org_id: orgId })
+      if (!error && typeof data === 'number') {
+        return data
+      }
+      // Fallback query if RPC isn't deployed yet
+      const { count, error: countErr } = await supabase
+        .from('events')
+        .select('*', { count: 'exact', head: true })
+        .eq('organization_id', orgId)
+        .eq('is_demo', false)
+        .not('status', 'in', '("draft","cancelled")')
+        .or(`status.eq.completed,and(status.eq.published,ends_at.lt.${new Date().toISOString()})`)
+
+      if (!countErr && typeof count === 'number') {
+        return count
+      }
+    } catch (err) {
+      console.warn('Could not calculate completed event count from Supabase:', err)
+    }
+  }
+
+  // Local fallback: count only real (non-demo) completed/concluded events
+  const now = Date.now()
+  return readEvents().filter(
+    (e) =>
+      e.organizationId === orgId &&
+      !e.isDemo &&
+      e.status !== 'draft' &&
+      e.status !== 'cancelled' &&
+      (e.status === 'completed' || (e.status === 'published' && new Date(e.endsAt).getTime() < now)),
+  ).length
+}
+
+/**
+ * Retrieves public upcoming and past events for an organization profile.
+ * Ensures drafts, unpublished events, and cancelled events are strictly excluded.
+ * Only published past events are displayed in event history.
+ */
+export async function getOrganizationPublicEvents(orgId: string): Promise<{
+  upcoming: EventWithMeta[]
+  past: EventWithMeta[]
+  completedCount: number
+}> {
+  await delay(150)
+  const ctx = buildContext(DEFAULT_LOCALITY_ID, defaultFilters.interests)
+  const nowIso = new Date().toISOString()
+  const nowDate = Date.now()
+
+  let upcoming: EventWithMeta[] = []
+  let past: EventWithMeta[] = []
+
+  if (isSupabaseConfigured()) {
+    try {
+      // 1. Fetch upcoming published events
+      const { data: upData, error: upErr } = await supabase
+        .from('events')
+        .select('*')
+        .eq('organization_id', orgId)
+        .eq('status', 'published')
+        .gte('ends_at', nowIso)
+        .order('starts_at', { ascending: true })
+
+      if (!upErr && upData) {
+        upcoming = upData.map((row) => enrichEvent(mapDbEventToEvent(row), ctx))
+      }
+
+      // 2. Fetch past concluded events (only real records, non-demo, non-cancelled, non-draft)
+      const { data: pastData, error: pastErr } = await supabase
+        .from('events')
+        .select('*')
+        .eq('organization_id', orgId)
+        .eq('is_demo', false)
+        .not('status', 'in', '("draft","cancelled")')
+        .or(`status.eq.completed,and(status.eq.published,ends_at.lt.${nowIso})`)
+        .order('starts_at', { ascending: false })
+
+      if (!pastErr && pastData) {
+        past = pastData.map((row) => enrichEvent(mapDbEventToEvent(row), ctx))
+      }
+    } catch (err) {
+      console.warn('Could not fetch organization public events from Supabase:', err)
+    }
+  } else {
+    // Local fallback
+    const allStored = readEvents().filter((e) => e.organizationId === orgId)
+    upcoming = allStored
+      .filter((e) => e.status === 'published' && new Date(e.endsAt).getTime() >= nowDate)
+      .sort((a, b) => a.startsAt.localeCompare(b.startsAt))
+      .map((e) => enrichEvent(e, ctx))
+
+    past = allStored
+      .filter(
+        (e) =>
+          !e.isDemo &&
+          e.status !== 'draft' &&
+          e.status !== 'cancelled' &&
+          (e.status === 'completed' || (e.status === 'published' && new Date(e.endsAt).getTime() < nowDate)),
+      )
+      .sort((a, b) => b.startsAt.localeCompare(a.startsAt))
+      .map((e) => enrichEvent(e, ctx))
+  }
+
+  const completedCount = past.length
+  return { upcoming, past, completedCount }
 }
 
 /** Events owned by the current organizer, including drafts, completed, and cancelled events. */

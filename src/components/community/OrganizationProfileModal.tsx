@@ -9,10 +9,8 @@ import { useToast } from '../../hooks/ToastContext'
 import {
   authAdapter,
   followOrganization,
-  getEvents,
-  searchEvents,
+  getOrganizationPublicEvents,
   unfollowOrganization,
-  defaultFilters,
 } from '../../services'
 import type { CommunityPost, EventWithMeta, Organization } from '../../types'
 import { CommunityPostCard } from './CommunityPostCard'
@@ -61,47 +59,25 @@ export function OrganizationProfileModal({
     }
   }, [organization, onClose])
 
-  // Load upcoming and past events for public event history
+  // Load upcoming and past events for public event history from real records
   useEffect(() => {
     if (!organization) return
     let active = true
     setEventsLoading(true)
 
-    Promise.all([
-      searchEvents({ ...defaultFilters, sort: 'soonest' }),
-      getEvents(),
-    ])
-      .then(([upcoming, allStored]) => {
+    getOrganizationPublicEvents(organization.id)
+      .then((res) => {
         if (!active) return
-        const isOrgEvent = (e: { organizationId?: string; organizerName: string; communityId?: string; id: string }) =>
-          (organization.upcomingEventIds && organization.upcomingEventIds.includes(e.id)) ||
-          e.organizationId === organization.id ||
-          e.organizerName.toLowerCase().includes(organization.name.toLowerCase()) ||
-          (e.communityId && e.communityId.toLowerCase().includes(organization.slug))
-
-        const matchingUpcoming = upcoming.filter(isOrgEvent)
-        setEvents(matchingUpcoming)
-
-        const now = Date.now()
-        // Past / completed public events
-        const matchingPast = allStored
-          .filter(
-            (e) =>
-              isOrgEvent(e) &&
-              (e.status === 'completed' || (e.status === 'published' && new Date(e.endsAt).getTime() < now)),
-          )
-          .map((e) => ({
-            ...e,
-            seatsLeft: 0,
-            rsvpCount: e.baseRsvpCount,
-            isRsvped: false,
-            recommendationScore: 0,
-          })) as EventWithMeta[]
-        setPastEvents(matchingPast)
+        setEvents(res.upcoming)
+        setPastEvents(res.past)
+      })
+      .catch((err) => {
+        console.warn('Could not load organization public events:', err)
       })
       .finally(() => {
         if (active) setEventsLoading(false)
       })
+
     return () => {
       active = false
     }

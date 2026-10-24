@@ -30,12 +30,13 @@ import {
 } from './db'
 
 export interface CommunityFeedOptions {
-  tab: CommunityTab
-  category: Category | 'all'
+  tab?: CommunityTab
+  category?: Category | 'all'
   query?: string
-  sort: PostSortKey
-  localityId: string
+  sort?: PostSortKey
+  localityId?: string
   interests?: Category[]
+  organizationId?: string
 }
 
 export function getCurrentUserId(): string {
@@ -110,8 +111,13 @@ export async function getCommunityPosts(options: CommunityFeedOptions): Promise<
   }
 
   // 2. Category filter
-  if (options.category !== 'all') {
+  if (options.category && options.category !== 'all') {
     enriched = enriched.filter((p) => p.category === options.category)
+  }
+
+  // 2.5 Organization filter
+  if (options.organizationId) {
+    enriched = enriched.filter((p) => p.organizationId === options.organizationId)
   }
 
   // 3. Search query filter (search content, author, community, organization)

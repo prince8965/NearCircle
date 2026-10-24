@@ -27,6 +27,7 @@ import { PageHeader } from '../components/ui/PageHeader'
 import { Skeleton } from '../components/ui/Skeleton'
 import { EditOrganizationModal } from '../components/organization/EditOrganizationModal'
 import { OrganizationProfileModal } from '../components/community/OrganizationProfileModal'
+import { AttendeeListModal } from '../components/events/AttendeeListModal'
 import { useAuth } from '../hooks/AuthContext'
 import { useToast } from '../hooks/ToastContext'
 import { useAsync } from '../hooks/useAsync'
@@ -63,6 +64,7 @@ export default function OrganizerDashboardPage() {
   const [activeTab, setActiveTab] = useState<FilterTab>('all')
 
   // Modals state
+  const [attendeesTarget, setAttendeesTarget] = useState<EventWithMeta | null>(null)
   const [cancelTarget, setCancelTarget] = useState<EventWithMeta | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<EventWithMeta | null>(null)
   const [publishTarget, setPublishTarget] = useState<EventWithMeta | null>(null)
@@ -487,6 +489,14 @@ export default function OrganizerDashboardPage() {
 
                       {isPublished && (
                         <>
+                          <button
+                            type="button"
+                            className="btn-secondary px-2.5 py-1 text-xs flex items-center gap-1 text-brand border-brand/30 hover:border-brand/60"
+                            onClick={() => setAttendeesTarget(e)}
+                            title="View attendee roster"
+                          >
+                            <Users className="h-3.5 w-3.5" /> Attendees
+                          </button>
                           <Link
                             to={`/organizer/edit/${e.id}`}
                             className="btn-secondary px-3 py-1 text-xs flex items-center gap-1"
@@ -511,7 +521,26 @@ export default function OrganizerDashboardPage() {
                         </>
                       )}
 
-                      {(isCompleted || isCancelled) && (
+                      {isCompleted && (
+                        <>
+                          <button
+                            type="button"
+                            className="btn-secondary px-2.5 py-1 text-xs flex items-center gap-1 text-brand border-brand/30 hover:border-brand/60"
+                            onClick={() => setAttendeesTarget(e)}
+                            title="View attendee roster"
+                          >
+                            <Users className="h-3.5 w-3.5" /> Attendees
+                          </button>
+                          <Link
+                            to={`/events/${e.id}`}
+                            className="btn-secondary px-3 py-1 text-xs flex items-center gap-1"
+                          >
+                            <Eye className="h-3.5 w-3.5" /> View
+                          </Link>
+                        </>
+                      )}
+
+                      {isCancelled && (
                         <Link
                           to={`/events/${e.id}`}
                           className="btn-secondary px-3 py-1 text-xs flex items-center gap-1"
@@ -598,6 +627,13 @@ export default function OrganizerDashboardPage() {
           setIsViewOrgOpen(false)
           setIsEditOrgOpen(true)
         }}
+      />
+
+      {/* Organizer Attendee Roster Modal */}
+      <AttendeeListModal
+        open={attendeesTarget !== null}
+        event={attendeesTarget}
+        onClose={() => setAttendeesTarget(null)}
       />
     </div>
   )
