@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
+  Award,
   Building2,
   CalendarDays,
   CheckCircle2,
@@ -28,6 +29,7 @@ import { Skeleton } from '../components/ui/Skeleton'
 import { EditOrganizationModal } from '../components/organization/EditOrganizationModal'
 import { OrganizationProfileModal } from '../components/community/OrganizationProfileModal'
 import { AttendeeListModal } from '../components/events/AttendeeListModal'
+import { OrganizerJudgingModal } from '../components/judging/OrganizerJudgingModal'
 import { useAuth } from '../hooks/AuthContext'
 import { useToast } from '../hooks/ToastContext'
 import { useAsync } from '../hooks/useAsync'
@@ -65,6 +67,7 @@ export default function OrganizerDashboardPage() {
 
   // Modals state
   const [attendeesTarget, setAttendeesTarget] = useState<EventWithMeta | null>(null)
+  const [judgingTarget, setJudgingTarget] = useState<EventWithMeta | null>(null)
   const [cancelTarget, setCancelTarget] = useState<EventWithMeta | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<EventWithMeta | null>(null)
   const [publishTarget, setPublishTarget] = useState<EventWithMeta | null>(null)
@@ -497,6 +500,14 @@ export default function OrganizerDashboardPage() {
                           >
                             <Users className="h-3.5 w-3.5" /> Attendees
                           </button>
+                          <button
+                            type="button"
+                            className="btn-secondary px-2.5 py-1 text-xs flex items-center gap-1 text-amber-400 border-amber-500/30 hover:border-amber-500/60"
+                            onClick={() => setJudgingTarget(e)}
+                            title="Configure judging criteria & review scores"
+                          >
+                            <Award className="h-3.5 w-3.5" /> Judging
+                          </button>
                           <Link
                             to={`/organizer/edit/${e.id}`}
                             className="btn-secondary px-3 py-1 text-xs flex items-center gap-1"
@@ -530,6 +541,14 @@ export default function OrganizerDashboardPage() {
                             title="View attendee roster"
                           >
                             <Users className="h-3.5 w-3.5" /> Attendees
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-secondary px-2.5 py-1 text-xs flex items-center gap-1 text-amber-400 border-amber-500/30 hover:border-amber-500/60"
+                            onClick={() => setJudgingTarget(e)}
+                            title="Configure judging criteria & review scores"
+                          >
+                            <Award className="h-3.5 w-3.5" /> Judging
                           </button>
                           <Link
                             to={`/events/${e.id}`}
@@ -634,6 +653,14 @@ export default function OrganizerDashboardPage() {
         open={attendeesTarget !== null}
         event={attendeesTarget}
         onClose={() => setAttendeesTarget(null)}
+      />
+
+      {/* Organizer Judging & Results Modal */}
+      <OrganizerJudgingModal
+        open={judgingTarget !== null}
+        event={judgingTarget}
+        onClose={() => setJudgingTarget(null)}
+        onUpdate={() => void events.reload()}
       />
     </div>
   )

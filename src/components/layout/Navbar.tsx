@@ -23,6 +23,9 @@ export function Navbar() {
       } else {
         items.push({ to: '/my-events', label: 'My Events', end: false })
       }
+      if (user.role === 'judge' || isOrganizer || user.role === 'admin') {
+        items.push({ to: '/judge', label: 'Judging', end: false })
+      }
     }
     return items
   }, [user, isOrganizer])

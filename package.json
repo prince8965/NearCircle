@@ -10,7 +10,8 @@
     "typecheck": "tsc -b --noEmit",
     "test": "vite-node scripts/run-all-tests.ts",
     "test:phase6": "vite-node scripts/test-phase6.ts",
-    "test:phase7": "vite-node scripts/test-phase7.ts"
+    "test:phase7": "vite-node scripts/test-phase7.ts",
+    "test:phase8-9": "vite-node scripts/test-phase8-9.ts"
   },
   "dependencies": {
     "@react-google-maps/api": "^2.20.8",

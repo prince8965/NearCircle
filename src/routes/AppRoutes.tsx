@@ -14,6 +14,8 @@ import OrganizerDashboardPage from '../pages/OrganizerDashboardPage'
 import OrganizationProfilePage from '../pages/OrganizationProfilePage'
 import PosterToEventPage from '../pages/PosterToEventPage'
 import UnauthorizedPage from '../pages/UnauthorizedPage'
+import ProjectSubmissionPage from '../pages/ProjectSubmissionPage'
+import JudgeDashboardPage from '../pages/JudgeDashboardPage'
 import { ProtectedRoute } from './ProtectedRoute'
 import { RoleGuard } from './RoleGuard'
 
@@ -36,6 +38,12 @@ export function AppRoutes() {
           <Route path="communities" element={<CommunitiesPage />} />
           <Route path="communities/:id" element={<CommunityDetailPage />} />
           <Route path="my-events" element={<MyEventsPage />} />
+          <Route path="events/:id/submit" element={<ProjectSubmissionPage />} />
+        </Route>
+
+        {/* Judge / Organizer Evaluation Portal */}
+        <Route element={<RoleGuard allowedRoles={['judge', 'organizer', 'admin']} />}>
+          <Route path="judge" element={<JudgeDashboardPage />} />
         </Route>
 
         {/* Organizer-Protected Routes (Requires 'organizer' or 'admin' role) */}

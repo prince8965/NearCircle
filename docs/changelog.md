@@ -4,6 +4,57 @@ All notable changes to the NearCircle project are documented in this file.
 
 ---
 
+## [Phase 8 & 9] - Project Submissions, Supabase Storage, and Judging/Scoring (2026-10-25)
+
+### Added
+- `src/services/storageService.ts`:
+  - Dedicated storage service implementing `validateFile`, `uploadFile`, `createSignedUrl`, and `deleteFile`.
+  - Enforces bucket boundaries: `public-assets` (public read, 5MB limit, images only) and `project-submissions` (private, signed URLs, 25MB limit, docs, videos, archives).
+  - Implements signed URL token generation and prevents unauthorized overwriting or file deletion.
+- `src/services/submissionService.ts`:
+  - Dedicated submission workflow service implementing `getSubmissionById`, `getSubmissionForEvent`, `getEventSubmissions`, `saveDraftSubmission`, `submitProject`, and `deleteSubmission`.
+  - Enforces registration prerequisite, team vs solo linkage, deadline enforcement, completion validation, and post-deadline lock.
+- `src/services/judgingService.ts`:
+  - Dedicated judging and scoring service implementing `getJudgingCriteria`, `saveJudgingCriteria`, `assignJudge`, `removeJudgeAssignment`, `getEventJudges`, `getAssignedEventsForJudge`, `getEligibleSubmissionsForJudge`, `submitJudgeScores`, `getSubmissionScores`, `calculateEventRankings`, `publishEventResults`, and `getJudgingProgress`.
+  - Implements multi-judge weighted criteria calculations, normalized percentages, deterministic tie-breaking (highest-weight criterion -> earlier submittedAt), and result publication privacy controls.
+- `supabase/migrations/20261025_phase8_phase9_submissions_and_judging.sql`:
+  - Database schema enhancements: added `results_published` flag to `events`, `file_urls` and `feedback_summary` to `submissions`.
+  - Database triggers: `tr_validate_submission_rules` (registration prerequisite and deadline constraint), `tr_validate_submission_score` (bounds check 0 <= score <= max_score).
+  - Stored procedures: `calculate_event_rankings` and `set_event_results_published`.
+  - Storage bucket definitions and RLS policies on `storage.objects` for `public-assets` and `project-submissions`.
+- `src/pages/ProjectSubmissionPage.tsx`:
+  - Project submission portal with draft saving, file attachment uploads to private storage, signed URL downloads, technology tagging, and deadline enforcement.
+- `src/components/judging/ScoreSubmissionModal.tsx`:
+  - Judge evaluation rubric modal with interactive score sliders, live weighted score preview, criteria weights, and private feedback.
+- `src/pages/JudgeDashboardPage.tsx`:
+  - Judge portal displaying assigned events, evaluation progress metrics, submission review cards, and scoring modal triggers.
+- `src/components/judging/OrganizerJudgingTab.tsx` & `OrganizerJudgingModal.tsx`:
+  - Organizer judging management interface with criteria setup, weight configuration, judge assignments, live rankings preview, and result publication toggle.
+- `src/components/events/EventSubmissionsTab.tsx`:
+  - Event details tab featuring the official Winner Podium and Leaderboard when results are published, as well as submission CTA cards for registered participants.
+- `scripts/test-phase8-9.ts`:
+  - Automated test suite covering storage validation, signed URLs, draft saving, team vs solo submission association, deadline enforcement, judge isolation, score bounds, weighted ranking calculations, tie-breaking, and result publication protection (18/18 passed).
+- `docs/project-submissions-and-judging.md`:
+  - Comprehensive technical architecture, storage manual configuration guide, ranking formulas, and authorization specifications.
+
+### Modified
+- `src/types/index.ts`:
+  - Added types: `SubmissionStatus`, `SubmissionFile`, `ProjectSubmission`, `StorageUploadResult`, `JudgingCriterion`, `JudgeAssignment`, `SubmissionScore`, `CriterionScoreBreakdown`, `SubmissionRanking`, `JudgingProgress`, and `resultsPublished?: boolean` on `Event`.
+- `src/services/db.ts`:
+  - Added persistent table stores for `submissions.v1`, `judging_criteria.v1`, `judge_assignments.v1`, `submission_scores.v1`, and `storage_files.v1`.
+- `src/pages/EventDetailsPage.tsx`:
+  - Integrated `EventSubmissionsTab` with live submission counts and results status.
+- `src/pages/OrganizerDashboardPage.tsx`:
+  - Added "Judging" action button and integrated `OrganizerJudgingModal`.
+- `src/routes/AppRoutes.tsx`:
+  - Added routes for `/events/:id/submit` (`ProjectSubmissionPage`) and `/judge` (`JudgeDashboardPage`).
+- `src/components/layout/Navbar.tsx`:
+  - Added navigation link for "Judge Portal" accessible to judges and organizers.
+- `scripts/run-all-tests.ts`:
+  - Updated master test runner to execute Phase 6, Phase 7, and Phase 8/9 sequentially.
+
+---
+
 ## [Phase 7] - Event Registrations and Team Management (2026-10-25)
 
 ### Added

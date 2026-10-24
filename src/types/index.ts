@@ -90,6 +90,7 @@ export interface Event {
   rules?: string
   prizesSummary?: string
   tracks?: string[]
+  resultsPublished?: boolean
 }
 
 export interface EventWithMeta extends Event {
@@ -404,4 +405,138 @@ export interface TeamInvite {
   invitedUserId?: string
   status: TeamInviteStatus
   createdAt: string
+}
+
+/* ==========================================================================
+   Phase 8: Project Submissions & Storage Types
+   ========================================================================== */
+
+export type SubmissionStatus =
+  | 'draft'
+  | 'submitted'
+  | 'under_review'
+  | 'winner'
+  | 'disqualified'
+
+export interface SubmissionFile {
+  id: string
+  name: string
+  sizeBytes: number
+  mimeType: string
+  storagePath: string
+  url?: string
+  uploadedAt: string
+  isPrivate: boolean
+}
+
+export interface ProjectSubmission {
+  id: string
+  eventId: string
+  teamId?: string
+  teamName?: string
+  submitterId: string
+  submitterName?: string
+  submitterAvatar?: string
+  trackId?: string
+  trackTitle?: string
+  title: string
+  tagline?: string
+  description: string
+  demoUrl?: string
+  repoUrl?: string
+  videoUrl?: string
+  coverImageUrl?: string
+  technologies: string[]
+  files: SubmissionFile[]
+  status: SubmissionStatus
+  isPublic: boolean
+  submittedAt?: string
+  feedbackSummary?: string
+  createdAt: string
+  updatedAt: string
+
+  // Computed/judging fields
+  averageScore?: number
+  weightedTotalScore?: number
+  rank?: number
+}
+
+export interface StorageUploadResult {
+  path: string
+  publicUrl?: string
+  signedUrl?: string
+}
+
+/* ==========================================================================
+   Phase 9: Judging, Scoring & Leaderboard Types
+   ========================================================================== */
+
+export interface JudgingCriterion {
+  id: string
+  eventId: string
+  title: string
+  description?: string
+  weight: number
+  maxScore: number
+  displayOrder: number
+  createdAt: string
+}
+
+export interface JudgeAssignment {
+  id: string
+  eventId: string
+  judgeId: string
+  judgeName?: string
+  judgeEmail?: string
+  judgeAvatar?: string
+  trackId?: string
+  trackTitle?: string
+  createdAt: string
+}
+
+export interface SubmissionScore {
+  id: string
+  submissionId: string
+  judgeId: string
+  judgeName?: string
+  criterionId: string
+  criterionTitle?: string
+  score: number
+  feedback?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CriterionScoreBreakdown {
+  criterionId: string
+  criterionTitle: string
+  weight: number
+  maxScore: number
+  averageScore: number
+}
+
+export interface SubmissionRanking {
+  submissionId: string
+  title: string
+  teamId?: string
+  teamName?: string
+  submitterId: string
+  submitterName?: string
+  trackId?: string
+  trackTitle?: string
+  totalWeightedScore: number
+  normalizedPercentage: number
+  judgesCount: number
+  submittedAt?: string
+  rank: number
+  criteriaBreakdown?: CriterionScoreBreakdown[]
+  isWinner?: boolean
+}
+
+export interface JudgingProgress {
+  totalSubmissions: number
+  scoredSubmissions: number
+  totalJudges: number
+  isComplete: boolean
+  resultsPublished: boolean
 }

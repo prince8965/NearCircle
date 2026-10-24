@@ -63,5 +63,37 @@ export {
   leaveTeam,
   disbandTeam,
 } from './teamService'
+export {
+  uploadFile,
+  validateFile,
+  createSignedUrl,
+  deleteFile,
+  MAX_PUBLIC_FILE_SIZE,
+  MAX_PRIVATE_FILE_SIZE,
+  ALLOWED_PUBLIC_MIME_TYPES,
+  ALLOWED_PRIVATE_MIME_TYPES,
+} from './storageService'
+export {
+  getSubmissionById,
+  getSubmissionForEvent,
+  getEventSubmissions,
+  saveDraftSubmission,
+  submitProject,
+  deleteSubmission,
+} from './submissionService'
+export {
+  getJudgingCriteria,
+  saveJudgingCriteria,
+  assignJudge,
+  removeJudgeAssignment,
+  getEventJudges,
+  getAssignedEventsForJudge,
+  getEligibleSubmissionsForJudge,
+  submitJudgeScores,
+  getSubmissionScores,
+  calculateEventRankings,
+  publishEventResults,
+  getJudgingProgress,
+} from './judgingService'
 export { supabase, isSupabaseConfigured } from '../lib/supabase'
 

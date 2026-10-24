@@ -6,6 +6,7 @@ import { EventPoster } from '../components/events/EventPoster'
 import { RSVPButton } from '../components/events/RSVPButton'
 import { RegistrationModal } from '../components/events/RegistrationModal'
 import { TeamSection } from '../components/teams/TeamSection'
+import { EventSubmissionsTab } from '../components/events/EventSubmissionsTab'
 import { MapView } from '../components/maps/MapView'
 import { CategoryChip } from '../components/ui/CategoryChip'
 import { CategoryIcon } from '../components/ui/CategoryIcon'
@@ -231,6 +232,12 @@ export default function EventDetailsPage() {
               void reload()
               void registration.reload()
             }}
+          />
+
+          {/* Phase 8 & 9: Project Submissions & Hackathon Results */}
+          <EventSubmissionsTab
+            event={event}
+            isRegistered={!!registration.data || event.isRsvped}
           />
         </div>
 

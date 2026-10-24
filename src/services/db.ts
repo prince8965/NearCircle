@@ -11,10 +11,15 @@ import type {
   CommunityPost,
   Event,
   EventRegistration,
+  JudgeAssignment,
+  JudgingCriterion,
   Organization,
   PostComment,
   PostReport,
+  ProjectSubmission,
   RSVP,
+  SubmissionFile,
+  SubmissionScore,
   Team,
   TeamInvite,
   TeamMember,
@@ -30,6 +35,11 @@ const REGISTRATIONS_KEY = 'event_registrations.v1'
 const TEAMS_KEY = 'teams.v1'
 const TEAM_MEMBERS_KEY = 'team_members.v1'
 const TEAM_INVITES_KEY = 'team_invites.v1'
+const SUBMISSIONS_KEY = 'submissions.v1'
+const CRITERIA_KEY = 'judging_criteria.v1'
+const JUDGE_ASSIGNMENTS_KEY = 'judge_assignments.v1'
+const SCORES_KEY = 'submission_scores.v1'
+const STORAGE_FILES_KEY = 'storage_files.v1'
 const FOLLOWS_KEY = 'follows.v1'
 const COMMUNITY_POSTS_KEY = 'community_posts.v1'
 const POST_LIKES_KEY = 'post_likes.v1'
@@ -216,6 +226,57 @@ export function readTeamInvites(): TeamInvite[] {
 
 export function writeTeamInvites(invites: TeamInvite[]): void {
   writeStore(TEAM_INVITES_KEY, invites)
+  notifyChange()
+}
+
+export function readSubmissions(): ProjectSubmission[] {
+  return readStore<ProjectSubmission[]>(SUBMISSIONS_KEY, [])
+}
+
+export function writeSubmissions(submissions: ProjectSubmission[]): void {
+  writeStore(SUBMISSIONS_KEY, submissions)
+  notifyChange()
+}
+
+export function readJudgingCriteria(): JudgingCriterion[] {
+  return readStore<JudgingCriterion[]>(CRITERIA_KEY, [])
+}
+
+export function writeJudgingCriteria(criteria: JudgingCriterion[]): void {
+  writeStore(CRITERIA_KEY, criteria)
+  notifyChange()
+}
+
+export function readJudgeAssignments(): JudgeAssignment[] {
+  return readStore<JudgeAssignment[]>(JUDGE_ASSIGNMENTS_KEY, [])
+}
+
+export function writeJudgeAssignments(assignments: JudgeAssignment[]): void {
+  writeStore(JUDGE_ASSIGNMENTS_KEY, assignments)
+  notifyChange()
+}
+
+export function readSubmissionScores(): SubmissionScore[] {
+  return readStore<SubmissionScore[]>(SCORES_KEY, [])
+}
+
+export function writeSubmissionScores(scores: SubmissionScore[]): void {
+  writeStore(SCORES_KEY, scores)
+  notifyChange()
+}
+
+export interface StoredFileRecord extends SubmissionFile {
+  bucket: string
+  contentBase64?: string
+  ownerId: string
+}
+
+export function readStoredFiles(): StoredFileRecord[] {
+  return readStore<StoredFileRecord[]>(STORAGE_FILES_KEY, [])
+}
+
+export function writeStoredFiles(files: StoredFileRecord[]): void {
+  writeStore(STORAGE_FILES_KEY, files)
   notifyChange()
 }
 
