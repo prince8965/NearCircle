@@ -95,5 +95,22 @@ export {
   publishEventResults,
   getJudgingProgress,
 } from './judgingService'
+export {
+  getNotifications,
+  getUnreadNotificationCount,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
+  createNotification,
+  sendEventDeadlineReminders,
+} from './notificationService'
+export {
+  getPendingVerifications,
+  getAllOrganizationsForAdmin,
+  requestOrganizationVerification,
+  reviewOrganizationVerification,
+  getAdminAuditLogs,
+  resolveReportedPost,
+  getPlatformAdminAnalytics,
+} from './adminService'
 export { supabase, isSupabaseConfigured } from '../lib/supabase'
 

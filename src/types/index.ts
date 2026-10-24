@@ -133,6 +133,12 @@ export interface OrganizerAnalytics {
   totalCheckIns: number
   /** 0..1 */
   attendanceRate: number
+  totalRegistrations?: number
+  confirmedRegistrations?: number
+  checkedInRegistrations?: number
+  totalSubmissions?: number
+  scoredSubmissions?: number
+  events?: DetailedEventAnalytics[]
   isMock?: boolean
   isRealData?: boolean
 }
@@ -311,6 +317,11 @@ export interface Organization {
   upcomingEventsCount?: number
   rules?: string
   eligibility?: string
+  verificationStatus?: 'unverified' | 'pending' | 'verified' | 'rejected'
+  verificationRequestedAt?: string
+  verifiedAt?: string
+  verifiedBy?: string
+  verificationNotes?: string
   createdAt?: string
   updatedAt?: string
 }
@@ -540,3 +551,94 @@ export interface JudgingProgress {
   isComplete: boolean
   resultsPublished: boolean
 }
+
+/* ==========================================================================
+   Phase 10: Notifications, Administration & Analytics Types
+   ========================================================================== */
+
+export type NotificationType =
+  | 'registration_confirmed'
+  | 'registration_status_changed'
+  | 'team_invitation'
+  | 'team_joined'
+  | 'submission_created'
+  | 'submission_status_changed'
+  | 'deadline_reminder'
+  | 'judging_assigned'
+  | 'results_published'
+  | 'verification_status'
+  | 'system'
+
+export interface AppNotification {
+  id: string
+  userId: string
+  type: NotificationType
+  title: string
+  message: string
+  link?: string
+  data?: Record<string, any>
+  isRead: boolean
+  createdAt: string
+}
+
+export interface AdminAuditLog {
+  id: string
+  adminId: string
+  adminName: string
+  action:
+    | 'approve_verification'
+    | 'reject_verification'
+    | 'moderate_post'
+    | 'dismiss_report'
+    | 'update_user_role'
+  targetType: 'organization' | 'community_post' | 'user'
+  targetId: string
+  targetName?: string
+  details?: string
+  createdAt: string
+}
+
+export interface DetailedEventAnalytics {
+  eventId: string
+  eventTitle: string
+  status: EventStatus
+  isPublished: boolean
+  isCompleted: boolean
+  totalRegistrations: number
+  confirmedRegistrations: number
+  checkedInRegistrations: number
+  attendanceRate: number
+  totalSubmissions: number
+  scoredSubmissions: number
+  resultsPublished: boolean
+}
+
+export interface ComprehensiveOrganizerAnalytics {
+  totalEvents: number
+  publishedEvents: number
+  draftEvents: number
+  completedEvents: number
+  cancelledEvents: number
+  totalRegistrations: number
+  confirmedRegistrations: number
+  checkedInRegistrations: number
+  attendanceRate: number
+  totalSubmissions: number
+  scoredSubmissions: number
+  events: DetailedEventAnalytics[]
+  isRealData: boolean
+}
+
+export interface PlatformAdminAnalytics {
+  totalUsers: number
+  totalOrganizations: number
+  verifiedOrganizations: number
+  pendingVerifications: number
+  totalEvents: number
+  activeEvents: number
+  completedEvents: number
+  totalRegistrations: number
+  totalSubmissions: number
+  totalReports: number
+}
+

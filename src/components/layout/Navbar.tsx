@@ -3,6 +3,7 @@ import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { LogOut, Menu, UserRound, X } from 'lucide-react'
 import { useAuth } from '../../hooks/AuthContext'
 import { useToast } from '../../hooks/ToastContext'
+import { NotificationBell } from '../notifications/NotificationBell'
 import { Logo } from './Logo'
 
 export function Navbar() {
@@ -25,6 +26,9 @@ export function Navbar() {
       }
       if (user.role === 'judge' || isOrganizer || user.role === 'admin') {
         items.push({ to: '/judge', label: 'Judging', end: false })
+      }
+      if (user.role === 'admin') {
+        items.push({ to: '/admin', label: 'Admin Portal', end: false })
       }
     }
     return items
@@ -68,6 +72,7 @@ export function Navbar() {
         <div className="hidden items-center gap-2 lg:flex">
           {user ? (
             <>
+              <NotificationBell />
               <span className="flex items-center gap-2 rounded-lg bg-secondary border border-[#334155] px-3 py-1.5 text-xs font-medium text-white">
                 <UserRound className="h-3.5 w-3.5 text-brand" aria-hidden />
                 <span className="font-semibold text-white">{user.name}</span>

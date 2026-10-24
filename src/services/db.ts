@@ -8,6 +8,8 @@ import { SEED_POSTS } from '../data/communityPosts'
 import { SEED_EVENTS } from '../data/events'
 import { SEED_ORGANIZATIONS } from '../data/organizations'
 import type {
+  AdminAuditLog,
+  AppNotification,
   CommunityPost,
   Event,
   EventRegistration,
@@ -47,6 +49,8 @@ const POST_COMMENTS_KEY = 'post_comments.v1'
 const ORGANIZATIONS_KEY = 'organizations.v1'
 const ORG_FOLLOWS_KEY = 'org_follows.v1'
 const POST_REPORTS_KEY = 'post_reports.v1'
+const NOTIFICATIONS_KEY = 'notifications.v1'
+const ADMIN_AUDIT_LOGS_KEY = 'admin_audit_logs.v1'
 
 export function readEvents(): Event[] {
   const stored = readStore<Event[] | null>(EVENTS_KEY, null)
@@ -279,4 +283,23 @@ export function writeStoredFiles(files: StoredFileRecord[]): void {
   writeStore(STORAGE_FILES_KEY, files)
   notifyChange()
 }
+
+export function readNotifications(): AppNotification[] {
+  return readStore<AppNotification[]>(NOTIFICATIONS_KEY, [])
+}
+
+export function writeNotifications(notifications: AppNotification[]): void {
+  writeStore(NOTIFICATIONS_KEY, notifications)
+  notifyChange()
+}
+
+export function readAdminAuditLogs(): AdminAuditLog[] {
+  return readStore<AdminAuditLog[]>(ADMIN_AUDIT_LOGS_KEY, [])
+}
+
+export function writeAdminAuditLogs(logs: AdminAuditLog[]): void {
+  writeStore(ADMIN_AUDIT_LOGS_KEY, logs)
+  notifyChange()
+}
+
 

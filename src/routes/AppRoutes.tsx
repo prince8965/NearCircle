@@ -16,6 +16,7 @@ import PosterToEventPage from '../pages/PosterToEventPage'
 import UnauthorizedPage from '../pages/UnauthorizedPage'
 import ProjectSubmissionPage from '../pages/ProjectSubmissionPage'
 import JudgeDashboardPage from '../pages/JudgeDashboardPage'
+import AdminDashboardPage from '../pages/AdminDashboardPage'
 import { ProtectedRoute } from './ProtectedRoute'
 import { RoleGuard } from './RoleGuard'
 
@@ -52,6 +53,11 @@ export function AppRoutes() {
           <Route path="organizer/create" element={<CreateEventPage />} />
           <Route path="organizer/edit/:id" element={<EditEventPage />} />
           <Route path="organizer/poster" element={<PosterToEventPage />} />
+        </Route>
+
+        {/* Administrator Portal */}
+        <Route element={<RoleGuard allowedRoles={['admin']} />}>
+          <Route path="admin" element={<AdminDashboardPage />} />
         </Route>
 
         {/* Catch-all 404 */}

@@ -18,6 +18,7 @@ import {
   writeTeamMembers,
 } from './db'
 import { defaultFilters, enrichEvent } from './eventService'
+import { createNotification } from './notificationService'
 
 function generateTicketCode(): string {
   return `NC-${Math.random().toString(36).slice(2, 8).toUpperCase()}`
@@ -134,6 +135,16 @@ export async function registerForEvent(
   }
 
   writeRegistrations([...registrations, newReg])
+
+  void createNotification({
+    userId: sessionUser.id,
+    type: 'registration_confirmed',
+    title: `Registration Confirmed: ${event.title}`,
+    message: `You're all set! Your ticket pass is ${newReg.ticketCode}. Check your pass under My Events.`,
+    link: `/events/${event.id}`,
+    data: { eventId: event.id, ticketCode: newReg.ticketCode },
+  }).catch(() => {})
+
   return newReg
 }
 
@@ -175,6 +186,17 @@ export async function cancelRegistration(eventId: string): Promise<void> {
   writeRegistrations(
     registrations.map((r) => (r.id === target.id ? { ...r, status: 'cancelled' as const, updatedAt: nowIso } : r)),
   )
+
+  const events = readEvents()
+  const event = events.find((e) => e.id === eventId)
+  void createNotification({
+    userId: sessionUser.id,
+    type: 'registration_status_changed',
+    title: `Registration Cancelled: ${event?.title || 'Event'}`,
+    message: `Your registration has been cancelled and your ticket released.`,
+    link: `/events/${eventId}`,
+    data: { eventId },
+  }).catch(() => {})
 
   // Remove from any teams for this event
   const teams = readTeams()

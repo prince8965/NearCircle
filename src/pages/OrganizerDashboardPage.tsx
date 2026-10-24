@@ -14,6 +14,7 @@ import {
   PlusCircle,
   Send,
   ShieldAlert,
+  ShieldCheck,
   Ticket,
   Trash2,
   TrendingUp,
@@ -41,6 +42,7 @@ import {
   getOrganizerEvents,
   getOrganizationById,
   getOrganizationByOwnerId,
+  requestOrganizationVerification,
   updateEvent,
 } from '../services'
 import type { CommunityPost, EventStatus, EventWithMeta, Organization } from '../types'
@@ -90,6 +92,17 @@ export default function OrganizerDashboardPage() {
       setOrg(found)
     } catch (err) {
       console.warn('Could not load organization profile:', err)
+    }
+  }
+
+  const handleRequestVerification = async () => {
+    if (!org) return
+    try {
+      await requestOrganizationVerification(org.id, 'Campus organizer verification request')
+      notify('Verification request submitted for administrator review!')
+      await reloadOrg()
+    } catch (err: any) {
+      notify(err.message || 'Failed to submit verification request.', 'error')
     }
   }
 
@@ -228,14 +241,23 @@ export default function OrganizerDashboardPage() {
                     <CheckCircle2 className="h-3.5 w-3.5 fill-brand text-[#0B0F19]" />
                     Verified Organization
                   </span>
-                ) : (
+                ) : org?.verificationStatus === 'pending' ? (
                   <span
-                    title="Verification status is managed by NearCircle platform administrators"
+                    title="Verification status is under review by NearCircle administrators"
                     className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-semibold text-amber-300 border border-amber-500/30"
                   >
                     <ShieldAlert className="h-3.5 w-3.5" />
-                    Pending Verification
+                    Pending Verification Review
                   </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleRequestVerification}
+                    className="inline-flex items-center gap-1 rounded-full bg-brand/10 hover:bg-brand/20 px-2.5 py-0.5 text-xs font-semibold text-brand border border-brand/30 transition cursor-pointer"
+                  >
+                    <ShieldCheck className="h-3.5 w-3.5" />
+                    Request Campus Verification
+                  </button>
                 )}
               </div>
 
