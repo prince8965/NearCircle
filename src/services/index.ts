@@ -1,6 +1,6 @@
 /** Public service API. UI code should import only from here. */
 export { authAdapter, DEMO_OWNER_ID } from './authAdapter'
-export type { AuthAdapter } from './authAdapter'
+export type { AuthAdapter, SignUpOptions } from './authAdapter'
 export {
   getEvents,
   getEventById,

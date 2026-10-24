@@ -13,10 +13,30 @@ export type Category = (typeof CATEGORIES)[number]
 
 export type EventStatus = 'published' | 'draft' | 'cancelled'
 
+export type UserRole = 'participant' | 'organizer' | 'judge' | 'admin'
+
 export interface User {
   id: string
   name: string
   email: string
+  role: UserRole
+  avatarUrl?: string
+  organizationId?: string
+}
+
+export interface Profile {
+  id: string
+  role: UserRole
+  fullName: string
+  avatarUrl?: string
+  headline?: string
+  bio?: string
+  websiteUrl?: string
+  githubUrl?: string
+  linkedinUrl?: string
+  skills?: string[]
+  createdAt: string
+  updatedAt: string
 }
 
 export interface Locality {

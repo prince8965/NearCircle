@@ -1,78 +1,126 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import type { User } from '../types'
-import { authAdapter, isSupabaseConfigured, supabase } from '../services'
-import { removeStore, writeStore } from '../utils/storage'
+import type { User, UserRole } from '../types'
+import { authAdapter, isSupabaseConfigured, supabase, type SignUpOptions } from '../services'
 
 interface AuthValue {
   user: User | null
-  signIn: (email: string, password: string) => Promise<void>
-  signUp: (name: string, email: string, password: string) => Promise<void>
+  loading: boolean
+  isAuthenticated: boolean
+  isParticipant: boolean
+  isOrganizer: boolean
+  isAdmin: boolean
+  isJudge: boolean
+  signIn: (email: string, password: string) => Promise<User>
+  signUp: (optionsOrName: SignUpOptions | string, email?: string, password?: string) => Promise<User>
   signOut: () => Promise<void>
+  resetPassword: (email: string) => Promise<void>
+  refreshProfile: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthValue | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(() => authAdapter.getSession())
+  const [loading, setLoading] = useState<boolean>(() => isSupabaseConfigured())
 
+  // Initial session restoration and live sync
   useEffect(() => {
-    if (!isSupabaseConfigured()) return
+    if (!isSupabaseConfigured()) {
+      setLoading(false)
+      return
+    }
 
-    // Sync active session if available from Supabase client
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    let isMounted = true
+
+    // 1. Restore active session and load authoritative profile from database
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!isMounted) return
       if (session?.user) {
-        const u: User = {
-          id: session.user.id,
-          name:
-            (session.user.user_metadata?.name as string) ||
-            session.user.email?.split('@')[0] ||
-            'User',
-          email: session.user.email || '',
+        const profileUser = await authAdapter.fetchUserProfile(session.user.id)
+        if (isMounted) {
+          setUser(profileUser)
+          setLoading(false)
         }
-        setUser(u)
-        writeStore('session', u)
+      } else {
+        if (isMounted) {
+          setUser(null)
+          setLoading(false)
+        }
       }
+    }).catch(() => {
+      if (isMounted) setLoading(false)
     })
 
+    // 2. Listen to auth state changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!isMounted) return
       if (session?.user) {
-        const u: User = {
-          id: session.user.id,
-          name:
-            (session.user.user_metadata?.name as string) ||
-            session.user.email?.split('@')[0] ||
-            'User',
-          email: session.user.email || '',
-        }
-        setUser(u)
-        writeStore('session', u)
+        const profileUser = await authAdapter.fetchUserProfile(session.user.id)
+        if (isMounted) setUser(profileUser)
       } else {
-        setUser(null)
-        removeStore('session')
+        if (isMounted) setUser(null)
       }
     })
 
     return () => {
+      isMounted = false
       subscription.unsubscribe()
     }
   }, [])
 
   const signIn = useCallback(async (email: string, password: string) => {
-    setUser(await authAdapter.signIn(email, password))
+    const loggedIn = await authAdapter.signIn(email, password)
+    setUser(loggedIn)
+    return loggedIn
   }, [])
 
-  const signUp = useCallback(async (name: string, email: string, password: string) => {
-    setUser(await authAdapter.signUp(name, email, password))
-  }, [])
+  const signUp = useCallback(
+    async (optionsOrName: SignUpOptions | string, email?: string, password?: string) => {
+      const newUser = await authAdapter.signUp(optionsOrName, email, password)
+      setUser(newUser)
+      return newUser
+    },
+    [],
+  )
 
   const signOut = useCallback(async () => {
     await authAdapter.signOut()
     setUser(null)
   }, [])
 
-  const value = useMemo(() => ({ user, signIn, signUp, signOut }), [user, signIn, signUp, signOut])
+  const resetPassword = useCallback(async (email: string) => {
+    await authAdapter.resetPassword(email)
+  }, [])
+
+  const refreshProfile = useCallback(async () => {
+    if (user?.id) {
+      const refreshed = await authAdapter.fetchUserProfile(user.id)
+      if (refreshed) setUser(refreshed)
+    }
+  }, [user?.id])
+
+  const role: UserRole | undefined = user?.role
+
+  const value = useMemo(
+    () => ({
+      user,
+      loading,
+      isAuthenticated: Boolean(user),
+      isParticipant: role === 'participant',
+      isOrganizer: role === 'organizer' || role === 'admin',
+      isAdmin: role === 'admin',
+      isJudge: role === 'judge' || role === 'admin',
+      signIn,
+      signUp,
+      signOut,
+      resetPassword,
+      refreshProfile,
+    }),
+    [user, loading, role, signIn, signUp, signOut, resetPassword, refreshProfile],
+  )
+
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
