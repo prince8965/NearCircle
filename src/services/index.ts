@@ -18,3 +18,22 @@ export type { CommunityWithState } from './communityService'
 export { getOrganizerAnalytics } from './analyticsService'
 export { extractEventFromPoster } from './posterExtraction'
 export { subscribeChange, getVersion } from './bus'
+export {
+  getCommunityPosts,
+  getPostById,
+  createPost,
+  updatePost,
+  deletePost,
+  togglePostLike,
+  getPostComments,
+  createPostComment,
+  deletePostComment,
+  reportPost,
+  getOrganizations,
+  getOrganizationById,
+  followOrganization,
+  unfollowOrganization,
+  getCurrentUserId,
+} from './communityPostService'
+export type { CommunityFeedOptions } from './communityPostService'
+

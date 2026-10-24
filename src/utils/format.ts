@@ -11,6 +11,20 @@ export const formatDate = (iso: string) => dateFmt.format(new Date(iso))
 export const formatLongDate = (iso: string) => longDateFmt.format(new Date(iso))
 export const formatTime = (iso: string) => timeFmt.format(new Date(iso)).toUpperCase()
 
+export function formatRelativeTime(iso: string): string {
+  const diffSec = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
+  if (diffSec < 60) return 'just now'
+  const diffMin = Math.floor(diffSec / 60)
+  if (diffMin < 60) return `${diffMin}m ago`
+  const diffHr = Math.floor(diffMin / 60)
+  if (diffHr < 24) return `${diffHr}h ago`
+  const diffDays = Math.floor(diffHr / 24)
+  if (diffDays === 1) return 'yesterday'
+  if (diffDays < 7) return `${diffDays}d ago`
+  return formatDate(iso)
+}
+
+
 export function formatTimeRange(startIso: string, endIso: string): string {
   return `${formatTime(startIso)} – ${formatTime(endIso)}`
 }

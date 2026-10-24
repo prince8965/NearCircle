@@ -142,3 +142,105 @@ export interface PosterExtraction {
   price: ExtractedField
   registrationUrl: ExtractedField
 }
+
+/* ==========================================================================
+   Community Section Types
+   ========================================================================== */
+
+export type CommunityTab = 'for-you' | 'following' | 'nearby' | 'organizations' | 'my-posts'
+export type PostSortKey = 'newest' | 'popular'
+export type AuthorRole = 'student' | 'organizer' | 'community_lead'
+
+export interface CommunityPost {
+  id: string
+  authorId: string
+  authorName: string
+  authorAvatar?: string
+  authorRole: AuthorRole
+  createdAt: string
+  updatedAt?: string
+  content: string
+  category: Category
+  imageUrl?: string
+  communityId?: string
+  communityName?: string
+  organizationId?: string
+  organizationName?: string
+  isOrgVerified?: boolean
+  /** Attached NearCircle event */
+  eventId?: string
+  eventMeta?: {
+    id: string
+    title: string
+    startsAt: string
+    endsAt?: string
+    venueName: string
+    price: number
+    posterUrl?: string
+  }
+  /** Custom event fields if not linking an existing event */
+  customEventDate?: string
+  customEventLocation?: string
+  customEventLink?: string
+  localityId?: string
+  likesCount: number
+  likedByMe?: boolean
+  commentsCount: number
+  isReported?: boolean
+  reportReason?: string
+  isDemo?: boolean
+}
+
+export interface CommunityPostInput {
+  content: string
+  category: Category
+  imageUrl?: string
+  communityId?: string
+  organizationId?: string
+  eventId?: string
+  localityId?: string
+  customEventDate?: string
+  customEventLocation?: string
+  customEventLink?: string
+}
+
+export interface PostComment {
+  id: string
+  postId: string
+  authorId: string
+  authorName: string
+  authorAvatar?: string
+  authorRole: AuthorRole
+  content: string
+  createdAt: string
+  parentId?: string
+  replyToAuthor?: string
+}
+
+export interface Organization {
+  id: string
+  name: string
+  slug: string
+  logoUrl?: string
+  accentColor: string
+  description: string
+  category: Category
+  localityId: string
+  websiteUrl?: string
+  contactEmail?: string
+  /** Only display verified badge when isVerified is true */
+  isVerified: boolean
+  followerCount: number
+  isFollowing?: boolean
+  upcomingEventIds?: string[]
+}
+
+export interface PostReport {
+  id: string
+  postId: string
+  userId: string
+  reason: string
+  details?: string
+  createdAt: string
+}
+

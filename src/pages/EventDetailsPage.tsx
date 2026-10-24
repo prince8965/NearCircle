@@ -1,5 +1,5 @@
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, CalendarDays, CalendarX2, Clock, ExternalLink, MapPin, Navigation, Ticket, Users } from 'lucide-react'
+import { ArrowLeft, CalendarDays, CalendarX2, Clock, ExternalLink, MapPin, MessageSquare, Navigation, Ticket, Users } from 'lucide-react'
 import { EventCard } from '../components/events/EventCard'
 import { EventPoster } from '../components/events/EventPoster'
 import { RSVPButton } from '../components/events/RSVPButton'
@@ -161,6 +161,13 @@ export default function EventDetailsPage() {
               <div className="h-full rounded-full bg-brand shadow-[0_0_10px_rgba(0,242,254,0.5)]" style={{ width: `${Math.min(100, (event.rsvpCount / event.capacity) * 100)}%` }} />
             </div>
             <RSVPButton event={event} size="lg" className="w-full" />
+            <Link
+              to={`/community?shareEventId=${event.id}`}
+              className="btn-secondary w-full flex items-center justify-center gap-2 text-xs"
+            >
+              <MessageSquare className="h-4 w-4 text-brand" aria-hidden />
+              Share to Community Feed
+            </Link>
             {event.registrationUrl && (
               <a href={event.registrationUrl} target="_blank" rel="noreferrer noopener" className="btn-secondary w-full">
                 Organizer’s registration page <ExternalLink className="h-4 w-4" aria-hidden />

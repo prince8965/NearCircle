@@ -3,6 +3,7 @@ import { Layout } from '../components/layout/Layout'
 import AuthPage from '../pages/AuthPage'
 import CommunitiesPage from '../pages/CommunitiesPage'
 import CommunityDetailPage from '../pages/CommunityDetailPage'
+import CommunityPage from '../pages/CommunityPage'
 import CreateEventPage from '../pages/CreateEventPage'
 import DiscoverPage from '../pages/DiscoverPage'
 import EditEventPage from '../pages/EditEventPage'
@@ -18,9 +19,12 @@ export function AppRoutes() {
       <Route element={<Layout />}>
         <Route index element={<DiscoverPage />} />
         <Route path="events/:id" element={<EventDetailsPage />} />
+        <Route path="community" element={<CommunityPage />} />
+        <Route path="community/org/:id" element={<CommunityPage />} />
         <Route path="my-events" element={<MyEventsPage />} />
         <Route path="communities" element={<CommunitiesPage />} />
         <Route path="communities/:id" element={<CommunityDetailPage />} />
+
         <Route path="organizer" element={<OrganizerDashboardPage />} />
         <Route path="organizer/create" element={<CreateEventPage />} />
         <Route path="organizer/edit/:id" element={<EditEventPage />} />

@@ -18,6 +18,7 @@ export function Footer() {
         </div>
         <nav aria-label="Footer" className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-ink-muted">
           <Link to="/" className="hover:text-white">Discover</Link>
+          <Link to="/community" className="hover:text-white">Community</Link>
           <Link to="/communities" className="hover:text-white">Communities</Link>
           <Link to="/my-events" className="hover:text-white">My Events</Link>
           <Link to="/organizer" className="hover:text-white">Organizer Dashboard</Link>

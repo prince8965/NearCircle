@@ -7,6 +7,7 @@ import { Logo } from './Logo'
 
 const LINKS = [
   { to: '/', label: 'Discover', end: true },
+  { to: '/community', label: 'Community', end: false },
   { to: '/communities', label: 'Communities', end: false },
   { to: '/my-events', label: 'My Events', end: false },
   { to: '/organizer', label: 'Organizer Dashboard', end: false },
