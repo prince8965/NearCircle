@@ -1,0 +1,34 @@
+import { Route, Routes } from 'react-router-dom'
+import { Layout } from '../components/layout/Layout'
+import AuthPage from '../pages/AuthPage'
+import CommunitiesPage from '../pages/CommunitiesPage'
+import CommunityDetailPage from '../pages/CommunityDetailPage'
+import CreateEventPage from '../pages/CreateEventPage'
+import DiscoverPage from '../pages/DiscoverPage'
+import EditEventPage from '../pages/EditEventPage'
+import EventDetailsPage from '../pages/EventDetailsPage'
+import MyEventsPage from '../pages/MyEventsPage'
+import NotFoundPage from '../pages/NotFoundPage'
+import OrganizerDashboardPage from '../pages/OrganizerDashboardPage'
+import PosterToEventPage from '../pages/PosterToEventPage'
+
+export function AppRoutes() {
+  return (
+    <Routes>
+      <Route element={<Layout />}>
+        <Route index element={<DiscoverPage />} />
+        <Route path="events/:id" element={<EventDetailsPage />} />
+        <Route path="my-events" element={<MyEventsPage />} />
+        <Route path="communities" element={<CommunitiesPage />} />
+        <Route path="communities/:id" element={<CommunityDetailPage />} />
+        <Route path="organizer" element={<OrganizerDashboardPage />} />
+        <Route path="organizer/create" element={<CreateEventPage />} />
+        <Route path="organizer/edit/:id" element={<EditEventPage />} />
+        <Route path="organizer/poster" element={<PosterToEventPage />} />
+        <Route path="login" element={<AuthPage mode="login" />} />
+        <Route path="signup" element={<AuthPage mode="signup" />} />
+        <Route path="*" element={<NotFoundPage />} />
+      </Route>
+    </Routes>
+  )
+}
