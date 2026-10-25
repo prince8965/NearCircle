@@ -1,105 +1,84 @@
-# NearCircle — Find your people, nearby.
+# NearCircle — Hyperlocal Campus & Tech Event Platform
 
-Hyperlocal event discovery and community engagement. This is a **frontend-only prototype** built for a college
-hackathon with React, Vite, TypeScript and Tailwind CSS. All data is local demo data; the UI is designed so a
-Supabase/PostgreSQL backend can be connected later without rebuilding screens.
+NearCircle is a full-stack, hyperlocal community and event discovery platform designed specifically for students, campus organizers, and tech communities across **Mumbai & Navi Mumbai**.
 
-## Quick start
+Built with **React, TypeScript, Vite, Tailwind CSS**, and powered by a robust **Supabase (PostgreSQL)** backend with **Row-Level Security (RLS)** and atomic database procedures.
 
+---
+
+## 🌟 Key Highlights
+
+- **Hyperlocal Discovery**: Auto-detects user location on login to pinpoint nearest campus hubs across 30+ localities in Mumbai & Navi Mumbai.
+- **Smart Geocoding & Maps**: Automatic real-time venue geocoding with interactive OpenStreetMap fallback and Google Maps integration.
+- **Full Auth & Role-Based Access**: Role-based access control (Participants, Campus Organizers, Judges, Admins) secured with Supabase Auth and RLS.
+- **Atomic Registrations & Capacity Locking**: Concurrency-safe event RSVP and ticket code generation with database transactions.
+- **Team Management & Hackathons**: Create and join teams via secure invite codes with strict duplicate prevention and team size limits.
+- **Project Submissions & Judging Workflow**: Track configurations, submission deadlines, multi-criteria scoring rubrics, and automated ranking calculations.
+- **Organizer Dashboard & Attendee Rosters**: Complete event lifecycle management (drafts, publishing, attendee rosters with live check-in toggle, and analytics).
+
+---
+
+## 🚀 Quick Start
+
+### 1. Clone & Install Dependencies
 ```bash
+git clone https://github.com/prince8965/NearCircle.git
+cd NearCircle
 npm install
-cp .env.example .env     # then add your Google Maps key (optional, see below)
-npm run dev              # http://localhost:5173
 ```
 
-### Scripts
-
-| Command | What it does |
-| --- | --- |
-| `npm run dev` | Start the Vite dev server |
-| `npm run build` | Type-check (`tsc -b`) and create a production build in `dist/` |
-| `npm run preview` | Serve the production build locally |
-| `npm run typecheck` | Type-check only |
-
-## Features
-
-- **Discover**: search by title, filter by category, date, free/paid and distance, sort by soonest / nearest /
-  recommended, clear all filters, live result count, featured and nearby sections, loading / empty / error states.
-- **Event details**: poster, date and time, venue, distance, price, seats left, organizer, Google Map, RSVP / cancel
-  RSVP with confirmation dialogs, related events.
-- **My Events**: upcoming and past tabs, placeholder ticket / QR, cancel RSVP.
-- **Communities**: search, category filter, follow / unfollow, community detail pages with upcoming events.
-- **Organizer dashboard**: mock analytics, event list, create / edit / cancel.
-- **Create / edit event**: validated form, poster upload with preview, map pin selection, free toggle, publish or save draft.
-- **Poster to event (mock)**: upload → progress → pre-filled review form with flagged fields → manual confirm.
-- **Login / signup**: validated forms with show/hide password and a swappable demo auth adapter.
-
-## Google Maps setup
-
-The app works without a key (a friendly fallback with an "Open in Google Maps" link is shown). To enable maps:
-
-1. In [Google Cloud Console](https://console.cloud.google.com/), create or select a project and enable billing.
-2. Enable **Maps JavaScript API** (APIs & Services → Library).
-3. Create an API key (APIs & Services → Credentials).
-4. **Restrict the key**:
-   - *Application restrictions* → **Websites (HTTP referrers)**. Add `http://localhost:5173/*` for development and
-     your production origin(s), e.g. `https://your-site.example/*`.
-   - *API restrictions* → **Restrict key** → select only **Maps JavaScript API**.
-5. Put the key in `.env`:
-
-   ```
-   VITE_GOOGLE_MAPS_API_KEY=your_key_here
-   ```
-
-6. Restart `npm run dev` (Vite reads env vars at startup).
-
-Notes: `.env` is git-ignored and `.env.example` contains only a placeholder. Because this is a browser app, the key is
-visible to users — the referrer and API restrictions above are what protect it. Location permission is **never**
-requested automatically. "Use my location" runs only when clicked, picks the closest listed locality, and does not
-store coordinates; if permission is denied, choose a locality manually from the dropdown.
-
-## Project structure
-
-```
-src/
-  components/  layout/ events/ communities/ forms/ maps/ ui/
-  pages/       one file per route
-  routes/      AppRoutes.tsx
-  services/    the only layer that reads/writes data (swap for real APIs)
-  data/        demo events, communities, localities
-  hooks/       contexts (auth, app, toast) and useAsync
-  types/       TypeScript interfaces (User, Event, Community, RSVP, OrganizerAnalytics, ...)
-  utils/       formatting, geo, storage, image, poster generator
+### 2. Environment Configuration
+Create a `.env` file in the root directory:
+```env
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
+VITE_GOOGLE_MAPS_API_KEY=your-optional-google-maps-key
 ```
 
-## Connecting a backend later
+### 3. Run Development Server
+```bash
+npm run dev
+```
+Open [http://localhost:5173](http://localhost:5173) in your browser.
 
-UI code imports only from `src/services/index.ts`. Each function documents its REST equivalent:
+---
 
-`getEvents`, `getEventById`, `searchEvents`, `getOrganizerEvents`, `createEvent`, `updateEvent`, `cancelEvent`,
-`createRSVP`, `cancelRSVP`, `getMyEvents`, `getCommunities`, `followCommunity`, `unfollowCommunity`,
-`getOrganizerAnalytics`, `extractEventFromPoster`.
+## 📋 Available Scripts
 
-- `services/db.ts` is the localStorage "database". Replace its readers/writers (or the service bodies) with Supabase
-  queries.
-- `services/authAdapter.ts` defines an `AuthAdapter` interface. Implement it with `supabase.auth.*` and change the
-  exported `authAdapter`.
-- `services/posterExtraction.ts` is the integration point for a future OCR / vision API (see the comment at the top).
-- `services/bus.ts` triggers refetches after writes; replace with React Query invalidation or realtime subscriptions.
+| Command | Description |
+|---|---|
+| `npm run dev` | Launch the local development server with Vite |
+| `npm run build` | Compile TypeScript and bundle production assets in `dist/` |
+| `npm run typecheck` | Run complete TypeScript validation (`tsc -b --noEmit`) |
+| `npm run preview` | Locally preview the production build |
+| `npm test` | Execute automated test suites |
 
-## Known prototype limitations
+---
 
-- **Demo data only.** All events, communities and organizers are fictional. Event dates are generated relative to the
-  first time you open the app in a browser.
-- **Browser-only persistence.** RSVPs, follows, created events and interests live in `localStorage` and disappear if
-  site data is cleared. Use *Reset demo data* in the footer to start over.
-- **Not real authentication.** The demo sign-in stores only a name and email, never a password, and provides no
-  security. Use Supabase Auth for real accounts.
-- **Capacity and duplicate-RSVP checks are frontend simulations.** A real backend must enforce them atomically
-  (unique constraint plus a transaction).
-- **Poster extraction is a mock.** It returns fixed sample values and does not read the image.
-- **Analytics and check-ins are mock numbers** and do not represent real attendance. There is no real check-in flow.
-- **Tickets and QR codes are placeholders**, and paid events take no payment.
-- **Single demo organizer.** All created events belong to one demo organizer identity.
-- Posters are downscaled and stored as data URLs; a real app should upload images to object storage.
-- Distances use straight-line (haversine) maths from the centre of the selected locality.
+## 🏗️ Architecture & Technology Stack
+
+```
+NearCircle Architecture
+ ├── Frontend Client
+ │    ├── React 19 + TypeScript + Vite
+ │    ├── Tailwind CSS for rich modern UI
+ │    ├── Lucide React icon system
+ │    └── Leaflet / OpenStreetMap / Google Maps integration
+ └── Backend & Database (Supabase)
+      ├── PostgreSQL 15 with Row-Level Security (RLS)
+      ├── Supabase Auth (JWT sessions & bcrypt passwords)
+      ├── PostgreSQL Functions (RPC) for atomic operations
+      └── Supabase Storage for poster and project assets
+```
+
+---
+
+## 📍 Supported Coverage
+NearCircle is currently tailored for the **Mumbai Metropolitan Region & Navi Mumbai**:
+* **Mumbai Central / Suburbs**: Andheri, Bandra, BKC, Borivali, Dadar, Churchgate, Colaba, Lower Parel, Powai, Juhu, Goregaon, Malad, Kandivali, Ghatkopar, Kurla, Chembur, Vikhroli, Mulund, Thane.
+* **Navi Mumbai**: Vashi, Nerul, CBD Belapur, Kharghar, Seawoods, Airoli, Ghansoli, Kopar Khairane, Panvel, Ulwe.
+
+---
+
+## 📄 License
+This project is licensed under the MIT License.
