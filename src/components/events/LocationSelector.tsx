@@ -11,38 +11,14 @@ import { distanceKm } from '../../utils/geo'
  * Supports choosing from Mumbai / Navi Mumbai hubs or typing any custom road/area within the region.
  */
 export function LocationSelector({ className = '' }: { className?: string }) {
-  const { localityId, setLocalityId } = useApp()
+  const { localityId, setLocalityId, detectLocation, isDetectingLocation } = useApp()
   const { notify } = useToast()
-  const [locating, setLocating] = useState(false)
   const [showCustomInput, setShowCustomInput] = useState(false)
   const [customText, setCustomText] = useState('')
   const [searching, setSearching] = useState(false)
 
   const useMyLocation = () => {
-    if (!('geolocation' in navigator)) {
-      notify('Location is not available in this browser. Please choose your locality.', 'info')
-      return
-    }
-    setLocating(true)
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const nearest = LOCALITIES.reduce(
-          (best, l) => {
-            const d = distanceKm(pos.coords.latitude, pos.coords.longitude, l.lat, l.lng)
-            return d < best.d ? { id: l.id, d } : best
-          },
-          { id: LOCALITIES[0].id, d: Infinity }
-        )
-        setLocalityId(nearest.id)
-        setLocating(false)
-        notify('Locality updated to closest hub. Your exact location was not saved.', 'success')
-      },
-      () => {
-        setLocating(false)
-        notify('Location permission was not granted. Pick your locality from the list instead.', 'info')
-      },
-      { maximumAge: 600_000, timeout: 8000 }
-    )
+    void detectLocation(false)
   }
 
   const handleCustomSearch = async () => {
@@ -164,12 +140,12 @@ export function LocationSelector({ className = '' }: { className?: string }) {
           <button
             type="button"
             onClick={useMyLocation}
-            disabled={locating}
+            disabled={isDetectingLocation}
             className="btn-secondary shrink-0 px-3"
             title="Use my location (picks closest Mumbai / Navi Mumbai hub)"
             aria-label="Use my location"
           >
-            <LocateFixed className={`h-4 w-4 text-brand ${locating ? 'animate-pulse' : ''}`} aria-hidden />
+            <LocateFixed className={`h-4 w-4 text-brand ${isDetectingLocation ? 'animate-pulse' : ''}`} aria-hidden />
           </button>
         </>
       )}

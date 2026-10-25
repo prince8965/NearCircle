@@ -4,6 +4,7 @@ import { ArrowLeft, Building2, Eye, EyeOff, Loader2, UserRound } from 'lucide-re
 import { Logo } from '../components/layout/Logo'
 import { DemoNote } from '../components/ui/DemoNote'
 import { FormField } from '../components/ui/FormField'
+import { useApp } from '../hooks/AppContext'
 import { useAuth } from '../hooks/AuthContext'
 import { useToast } from '../hooks/ToastContext'
 import { isSupabaseConfigured } from '../services'
@@ -26,6 +27,7 @@ interface Errors {
 export default function AuthPage({ mode }: Props) {
   const isSignup = mode === 'signup'
   const { signIn, signUp, resetPassword } = useAuth()
+  const { detectLocation } = useApp()
   const { notify } = useToast()
   const navigate = useNavigate()
   const location = useLocation()
@@ -103,6 +105,7 @@ export default function AuthPage({ mode }: Props) {
       } else {
         await signIn(email.trim(), password)
       }
+      void detectLocation(false)
       notify('Login successful!', 'success')
       navigate(from, { replace: true })
     } catch (e) {
