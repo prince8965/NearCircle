@@ -663,6 +663,7 @@ export default function OrganizerDashboardPage() {
       <OrganizationProfileModal
         organization={org}
         posts={communityPosts}
+        open={isViewOrgOpen}
         onClose={() => setIsViewOrgOpen(false)}
         onEdit={() => {
           setIsViewOrgOpen(false)

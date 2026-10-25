@@ -18,6 +18,7 @@ import { CommunityPostCard } from './CommunityPostCard'
 interface Props {
   organization: Organization | null
   posts: CommunityPost[]
+  open?: boolean
   onClose: () => void
   onFollowToggled?: () => void
   onPostUpdated?: () => void
@@ -27,6 +28,7 @@ interface Props {
 export function OrganizationProfileModal({
   organization,
   posts,
+  open = true,
   onClose,
   onFollowToggled,
   onPostUpdated,
@@ -102,7 +104,7 @@ export function OrganizationProfileModal({
     }
   }, [organization])
 
-  if (!organization) return null
+  if (!open || !organization) return null
 
   const locality = getLocality(organization.localityId)
 

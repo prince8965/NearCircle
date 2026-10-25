@@ -1,6 +1,8 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Check, Loader2 } from 'lucide-react'
 import { useToast } from '../../hooks/ToastContext'
+import { useAuth } from '../../hooks/AuthContext'
 import { cancelRSVP, createRSVP } from '../../services'
 import type { EventWithMeta } from '../../types'
 import { formatPrice } from '../../utils/format'
@@ -14,10 +16,21 @@ interface Props {
 
 export function RSVPButton({ event, size = 'sm', className = '' }: Props) {
   const { notify } = useToast()
+  const { isAuthenticated } = useAuth()
+  const navigate = useNavigate()
   const [busy, setBusy] = useState(false)
   const [modal, setModal] = useState<'rsvp' | 'cancel' | null>(null)
   const sizing = size === 'lg' ? 'px-6 py-3 text-base' : 'px-3.5 py-2'
   const ended = new Date(event.endsAt).getTime() < Date.now()
+
+  const requireAuth = (): boolean => {
+    if (!isAuthenticated) {
+      notify('Please sign in to RSVP for events.', 'info')
+      navigate('/auth')
+      return false
+    }
+    return true
+  }
 
   const run = async (action: 'rsvp' | 'cancel') => {
     setBusy(true)
@@ -78,7 +91,11 @@ export function RSVPButton({ event, size = 'sm', className = '' }: Props) {
         <button
           type="button"
           disabled={busy}
-          onClick={() => (event.price > 0 ? setModal('rsvp') : run('rsvp'))}
+          onClick={() => {
+            if (!requireAuth()) return
+            if (event.price > 0) setModal('rsvp')
+            else void run('rsvp')
+          }}
           className={`btn-primary ${sizing} ${className}`}
           aria-label={`RSVP to ${event.title}`}
         >
