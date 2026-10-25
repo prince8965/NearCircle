@@ -1,7 +1,8 @@
-import { useState, type FormEvent } from 'react'
-import { Save, Send } from 'lucide-react'
+import { useState, useEffect, type FormEvent } from 'react'
+import { AlertCircle, CheckCircle2, Loader2, Locate, Save, Send } from 'lucide-react'
 import { LOCALITIES, getLocality } from '../../data/localities'
 import { CATEGORIES, type Category, type EventStatus } from '../../types'
+import { geocodeMumbaiAddress } from '../../services'
 import { MapPicker } from '../maps/MapPicker'
 import { FormField, type FieldFlag } from '../ui/FormField'
 import { PosterUpload } from './PosterUpload'
@@ -29,11 +30,55 @@ export function CreateEventForm({
   const [values, setValues] = useState<EventFormValues>(initialValues)
   const [errors, setErrors] = useState<EventFormErrors>({})
   const [busy, setBusy] = useState<EventStatus | null>(null)
+  const [geocoding, setGeocoding] = useState(false)
+  const [geocodeStatus, setGeocodeStatus] = useState<{ success: boolean; message: string } | null>(null)
+  const [customLocality, setCustomLocality] = useState('')
 
   const set = <K extends keyof EventFormValues>(key: K, value: EventFormValues[K]) => {
     setValues((v) => ({ ...v, [key]: value }))
     if (errors[key]) setErrors((e) => ({ ...e, [key]: undefined }))
   }
+
+  const triggerGeocode = async (addr: string) => {
+    if (!addr || addr.trim().length < 3) return
+    setGeocoding(true)
+    try {
+      const res = await geocodeMumbaiAddress(addr, values.localityId)
+      if (res.error) {
+        setGeocodeStatus({ success: false, message: res.error })
+      } else if (res.matched) {
+        setValues((v) => ({ ...v, lat: res.lat, lng: res.lng }))
+        setGeocodeStatus({
+          success: true,
+          message: `Detected: ${res.displayName.split(',').slice(0, 3).join(', ')}`,
+        })
+      } else {
+        setGeocodeStatus({
+          success: true,
+          message: `Centered on ${getLocality(values.localityId).name} hub. Drag pin if needed.`,
+        })
+      }
+    } catch {
+      setGeocodeStatus(null)
+    } finally {
+      setGeocoding(false)
+    }
+  }
+
+  // Automatic geocode detection when address is typed
+  useEffect(() => {
+    if (values.mode === 'online') return
+    if (!values.address || values.address.trim().length < 5) {
+      setGeocodeStatus(null)
+      return
+    }
+
+    const timer = setTimeout(() => {
+      void triggerGeocode(values.address)
+    }, 800)
+
+    return () => clearTimeout(timer)
+  }, [values.address, values.mode])
 
   const submit = async (status: EventStatus) => {
     const found = validateEventForm(values, status, isEditing)
@@ -193,43 +238,122 @@ export function CreateEventForm({
                 aria-invalid={!!err('venueName')}
               />
             </FormField>
-            <FormField id="field-localityId" label="Locality Hub" required>
+            <FormField id="field-localityId" label="Locality Hub (Mumbai & Navi Mumbai only)" required>
               <select
                 id="field-localityId"
                 className="input"
                 value={values.localityId}
                 onChange={(e) => {
-                  const loc = getLocality(e.target.value)
-                  setValues((v) => ({ ...v, localityId: loc.id, lat: loc.lat, lng: loc.lng }))
+                  const val = e.target.value
+                  if (val === 'custom') {
+                    setValues((v) => ({ ...v, localityId: 'custom' }))
+                  } else {
+                    const loc = getLocality(val)
+                    setValues((v) => ({ ...v, localityId: loc.id, lat: loc.lat, lng: loc.lng }))
+                  }
                 }}
               >
-                {LOCALITIES.map((l) => (
-                  <option key={l.id} value={l.id}>
-                    {l.name}, {l.city}
-                  </option>
-                ))}
+                <optgroup label="Mumbai Hubs">
+                  {LOCALITIES.filter((l) => l.city === 'Mumbai').map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {l.name}, Mumbai
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="Navi Mumbai Hubs">
+                  {LOCALITIES.filter((l) => l.city === 'Navi Mumbai').map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {l.name}, Navi Mumbai
+                    </option>
+                  ))}
+                </optgroup>
+                <option value="custom">Other Mumbai / Navi Mumbai Area or Road...</option>
               </select>
             </FormField>
           </div>
 
+          {values.localityId === 'custom' && (
+            <FormField id="field-customLocality" label="Custom Area / Road Name (Mumbai & Navi Mumbai)" required>
+              <input
+                id="field-customLocality"
+                className="input"
+                placeholder="e.g. Linking Road, Bandra West or Palm Beach Road, Vashi"
+                value={customLocality}
+                onChange={(e) => {
+                  setCustomLocality(e.target.value)
+                  if (e.target.value.length > 4) {
+                    void triggerGeocode(e.target.value)
+                  }
+                }}
+              />
+            </FormField>
+          )}
+
           {values.mode !== 'online' && (
             <>
-              <FormField id="field-address" label="Venue address" required error={err('address')} flag={flags?.address}>
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label htmlFor="field-address" className="label mb-0">
+                    Venue address <span className="text-brand">*</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => void triggerGeocode(values.address)}
+                    disabled={geocoding || !values.address.trim()}
+                    className="inline-flex items-center gap-1 text-xs text-brand hover:underline font-medium disabled:opacity-50 cursor-pointer"
+                  >
+                    {geocoding ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Locate className="h-3.5 w-3.5" />}
+                    Auto-detect on Map
+                  </button>
+                </div>
                 <input
                   id="field-address"
                   className={`input ${invalid('address')}`}
                   value={values.address}
+                  placeholder="e.g. SV Road, Irla, Vile Parle West, Mumbai or Sector 15, CBD Belapur"
                   onChange={(e) => set('address', e.target.value)}
                   aria-invalid={!!err('address')}
                 />
-              </FormField>
+                {geocoding && (
+                  <p className="mt-1 flex items-center gap-1.5 text-xs text-brand animate-pulse">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Detecting venue coordinates in Mumbai / Navi Mumbai...
+                  </p>
+                )}
+                {!geocoding && geocodeStatus && (
+                  <p
+                    className={`mt-1 flex items-center gap-1.5 text-xs ${
+                      geocodeStatus.success ? 'text-emerald-400' : 'text-amber-400'
+                    }`}
+                  >
+                    {geocodeStatus.success ? (
+                      <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                    ) : (
+                      <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                    )}
+                    {geocodeStatus.message}
+                  </p>
+                )}
+                {err('address') && (
+                  <p className="mt-1 text-xs text-rose-400">{err('address')}</p>
+                )}
+              </div>
+
               <div>
-                <p className="label">Pin the exact spot</p>
+                <div className="flex items-center justify-between mb-1.5">
+                  <p className="label mb-0">Pin the exact spot</p>
+                  <span className="font-mono text-[11px] text-ink-muted">
+                    📍 {values.lat.toFixed(4)}, {values.lng.toFixed(4)}
+                  </span>
+                </div>
                 <MapPicker
                   value={{ lat: values.lat, lng: values.lng }}
+                  address={values.address}
                   onChange={(p) => setValues((v) => ({ ...v, lat: p.lat, lng: p.lng }))}
                 />
-                <p className="mt-1 text-xs text-ink-faint">Click the map or drag the pin. Without a map key, the locality centre is used.</p>
+                <p className="mt-1 text-xs text-ink-faint">
+                  Map auto-detects from your venue address above. You can also drag the pin or click anywhere to fine-tune.
+                </p>
               </div>
             </>
           )}

@@ -1,6 +1,6 @@
 import type { Organization } from '../types'
 
-/** DEMO CONTENT. Fictional student clubs and organizations. */
+/** DEMO CONTENT. Student clubs and organizations across Mumbai & Navi Mumbai. */
 export const SEED_ORGANIZATIONS: Organization[] = [
   {
     id: 'org-acm',
@@ -9,7 +9,7 @@ export const SEED_ORGANIZATIONS: Organization[] = [
     accentColor: '#00F2FE',
     description: 'Premier computing science and engineering student chapter hosting hackathons, coding sprints, and research workshops.',
     category: 'Technology',
-    localityId: 'kothrud',
+    localityId: 'andheri',
     websiteUrl: 'https://example.com/acm',
     contactEmail: 'contact@acm-campus.org',
     isVerified: true,
@@ -21,9 +21,9 @@ export const SEED_ORGANIZATIONS: Organization[] = [
     name: 'Google Developer Group Campus',
     slug: 'gdg-campus',
     accentColor: '#38BDF8',
-    description: 'Community for passionate student builders, open source developers, and web technology enthusiasts.',
+    description: 'Community for passionate student builders, open source developers, and web technology enthusiasts across Mumbai.',
     category: 'Web Development',
-    localityId: 'shivajinagar',
+    localityId: 'powai',
     websiteUrl: 'https://example.com/gdg',
     contactEmail: 'leads@gdgcampus.dev',
     isVerified: true,
@@ -37,7 +37,7 @@ export const SEED_ORGANIZATIONS: Organization[] = [
     accentColor: '#A855F7',
     description: 'Collaborative study groups, hands-on paper reading sessions, and deep learning labs for student researchers.',
     category: 'AI/ML',
-    localityId: 'shivajinagar',
+    localityId: 'bkc',
     websiteUrl: 'https://example.com/ml-collective',
     contactEmail: 'ai@mlcollective.org',
     isVerified: true,
@@ -51,7 +51,7 @@ export const SEED_ORGANIZATIONS: Organization[] = [
     accentColor: '#818CF8',
     description: 'Empowering student founders through venture competitions, mentorship circles, angel investor pitch sessions, and startup summits.',
     category: 'Business',
-    localityId: 'koregaon-park',
+    localityId: 'bandra',
     websiteUrl: 'https://example.com/ecell',
     contactEmail: 'team@ecell-campus.org',
     isVerified: true,
@@ -64,10 +64,10 @@ export const SEED_ORGANIZATIONS: Organization[] = [
     accentColor: '#F43F5E',
     description: 'Student-led collective of UI/UX designers, visual creators, digital illustrators, and 3D animators.',
     category: 'Art',
-    localityId: 'shivajinagar',
+    localityId: 'lower-parel',
     websiteUrl: 'https://example.com/designguild',
     contactEmail: 'hello@designguild.art',
-    isVerified: false, // Unverified to test and demonstrate that badge is only displayed when verified
+    isVerified: false,
     followerCount: 780,
   },
   {
@@ -75,9 +75,9 @@ export const SEED_ORGANIZATIONS: Organization[] = [
     name: 'Campus Sound & Music Society',
     slug: 'sound-music-society',
     accentColor: '#EC4899',
-    description: 'Celebrating campus music culture with open mic nights, acoustic jams, beatmaking sessions, and live showcases.',
+    description: 'Celebrating campus music culture with open mic nights, acoustic jams, beatmaking sessions, and live showcases in Navi Mumbai.',
     category: 'Music',
-    localityId: 'viman-nagar',
+    localityId: 'vashi',
     websiteUrl: 'https://example.com/musicsociety',
     contactEmail: 'jam@campussound.org',
     isVerified: true,
@@ -90,10 +90,10 @@ export const SEED_ORGANIZATIONS: Organization[] = [
     accentColor: '#06B6D4',
     description: 'Weekly campus 5K runs, football leagues, badminton meetups, and fitness bootcamp sessions for students.',
     category: 'Sports',
-    localityId: 'kothrud',
+    localityId: 'dadar',
     websiteUrl: 'https://example.com/metroathletics',
     contactEmail: 'sports@metroathletics.club',
-    isVerified: false, // Non-verified organization
+    isVerified: false,
     followerCount: 920,
   },
   {
@@ -101,9 +101,9 @@ export const SEED_ORGANIZATIONS: Organization[] = [
     name: 'Hardware & Maker Workshop',
     slug: 'hardware-maker-workshop',
     accentColor: '#C084FC',
-    description: 'Hands-on IoT, 3D printing, robotics builds, and embedded firmware labs for student hardware hackers.',
+    description: 'Hands-on IoT, 3D printing, robotics builds, and embedded firmware labs for student hardware hackers in Navi Mumbai.',
     category: 'Workshops',
-    localityId: 'baner',
+    localityId: 'kharghar',
     websiteUrl: 'https://example.com/makerlab',
     contactEmail: 'maker@hardwarelab.org',
     isVerified: true,

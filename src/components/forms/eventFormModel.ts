@@ -1,4 +1,4 @@
-import { getLocality } from '../../data/localities'
+import { LOCALITIES, getLocality } from '../../data/localities'
 import { CATEGORIES, type Category, type Event, type EventInput, type EventStatus } from '../../types'
 import { fromDateTimeInputs, toDateInput, toTimeInput } from '../../utils/format'
 
@@ -193,6 +193,15 @@ export function formValuesToInput(v: EventFormValues, status: EventStatus): Even
     .map((t) => t.trim())
     .filter(Boolean)
 
+  let resolvedLocalityId = v.localityId
+  if (resolvedLocalityId === 'custom' || !resolvedLocalityId) {
+    const nearest = LOCALITIES.reduce((best, l) => {
+      const d = Math.hypot(v.lat - l.lat, v.lng - l.lng)
+      return d < best.d ? { id: l.id, d } : best
+    }, { id: 'andheri', d: Infinity })
+    resolvedLocalityId = nearest.id
+  }
+
   return {
     title: v.title.trim(),
     description: v.description.trim(),
@@ -202,7 +211,7 @@ export function formValuesToInput(v: EventFormValues, status: EventStatus): Even
     endsAt,
     venueName: v.mode === 'online' ? (v.venueName.trim() || 'Online / Virtual') : v.venueName.trim(),
     address: v.mode === 'online' ? (v.address.trim() || 'Online Event Platform') : v.address.trim(),
-    localityId: v.localityId,
+    localityId: resolvedLocalityId,
     lat: v.lat,
     lng: v.lng,
     price: v.isFree ? 0 : Number(v.price) || 0,

@@ -48,7 +48,7 @@ export function OrganizationProfileModal({
 
   // Close on Escape key
   useEffect(() => {
-    if (!organization) return
+    if (!open || !organization) return
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
     }
@@ -59,7 +59,7 @@ export function OrganizationProfileModal({
       window.removeEventListener('keydown', onKeyDown)
       document.body.style.overflow = prev
     }
-  }, [organization, onClose])
+  }, [open, organization, onClose])
 
   // Load upcoming and past events for public event history from real records
   useEffect(() => {

@@ -12,9 +12,10 @@ interface Props {
   value: LatLng
   onChange: (value: LatLng) => void
   height?: number
+  address?: string
 }
 
-function LoadedPicker({ value, onChange, height }: Required<Props>) {
+function LoadedPicker({ value, onChange, height }: { value: LatLng; onChange: (v: LatLng) => void; height: number; address?: string }) {
   const { isLoaded, loadError } = useJsApiLoader({ id: MAPS_LOADER_ID, googleMapsApiKey: MAPS_API_KEY ?? '' })
   const [authFailed, setAuthFailed] = useState(false)
 
@@ -47,7 +48,7 @@ function LoadedPicker({ value, onChange, height }: Required<Props>) {
 }
 
 /** Click or drag the pin to choose the venue location. Falls back to the locality centre without a Maps key. */
-export function MapPicker({ value, onChange, height = 260 }: Props) {
-  if (!MAPS_API_KEY) return <MapFallback reason="missing-key" lat={value.lat} lng={value.lng} height={height} />
-  return <LoadedPicker value={value} onChange={onChange} height={height} />
+export function MapPicker({ value, onChange, height = 260, address }: Props) {
+  if (!MAPS_API_KEY) return <MapFallback reason="missing-key" lat={value.lat} lng={value.lng} address={address} height={height} />
+  return <LoadedPicker value={value} onChange={onChange} height={height} address={address} />
 }
